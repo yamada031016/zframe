@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>WebAssembly</title>
+</head>
+
+<body>
+    <p id="output">text</p>
+    <script type="module">
+
+        const env = {
+            memory: new WebAssembly.Memory({initial: 2, maximum: 2}),
+        };
+        var memory = env.memory
+        WebAssembly.instantiateStreaming(
+            fetch("../zig-out/bin/hello.wasm"),
+            {env}
+        ).then(obj => {
+            var buf = new Uint32Array(memory.buffer, 0, 2)
+            obj.instance.exports.set(buf)
+            obj.instance.exports.hello()
+            const mem = new Uint8Array(memory.buffer, buf[0], buf[1]);
+            const dec = new TextDecoder();
+            const hello = dec.decode(mem)
+            console.log(hello)
+            document.getElementById("output").textContent = hello
+        });
+    </script>
+</body>
+
+</html>
