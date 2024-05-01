@@ -12,12 +12,13 @@ pub fn build(b: *std.Build) void {
     });
 
     const optimize = b.standardOptimizeOption(.{});
+    _ = optimize;
 
     const exe = b.addExecutable(.{
         .name = "hello",
         .root_source_file = .{ .path = "src/main.zig" },
         .target = _target,
-        .optimize = optimize,
+        .optimize = .ReleaseSmall,
     });
     // <https://github.com/ziglang/zig/issues/8633>
     exe.global_base = 6560;
