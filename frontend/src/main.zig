@@ -29,7 +29,6 @@ pub fn main() !void {
 
 fn Header(title: []const u8) Element {
     return div.setClass("text-center my-10").init(.{
-        // &h.init(.{title}).setClass("text-4xl text-indigo-700 font-bold"),
         &h.init(.{title}).setClass("text-4xl text-indigo-700 font-bold"),
     });
 }
