@@ -1,6 +1,7 @@
 const std = @import("std");
 
 pub const Tag = enum {
+    span,
     div,
     heading,
     p,
@@ -11,6 +12,7 @@ pub const Tag = enum {
             .div => "div",
             .heading => "h1",
             .p => "p",
+            .span => "span",
         };
     }
 };

@@ -16,9 +16,17 @@ pub fn main() anyerror!void {
     const self_addr = try net.Address.resolveIp("127.0.0.1", 8000);
     var listener = try net.Address.listen(self_addr, .{});
     defer listener.deinit();
-    // try (&listener).listen(self_addr);
 
-    std.log.info("listening on {};press Ctrl-C to quit...", .{self_addr});
+    const act = std.posix.Sigaction{
+        .handler = .{ .handler = std.posix.SIG.ERR },
+        .mask = std.posix.empty_sigset,
+        .flags = 0,
+    };
+    try std.posix.sigaction(std.posix.SIG.INT, &act, null);
+
+    const stdout = std.io.getStdOut().writer();
+
+    try stdout.print("listening on {}\npress Ctrl-C to quit...\n", .{self_addr});
 
     while (listener.accept()) |conn| {
         std.log.info("Accepted Connection from: {}", .{conn.address});
@@ -80,6 +88,7 @@ const Mime = enum {
 fn serveFile(stream: *net.Stream, dir: fs.Dir) !void {
     var recv_buf: [1024]u8 = undefined;
     var recv_total: usize = 0;
+    const stdout = std.io.getStdOut().writer();
 
     while (stream.read(recv_buf[recv_total..])) |recv_len| {
         if (recv_len == 0)
@@ -125,7 +134,7 @@ fn serveFile(stream: *net.Stream, dir: fs.Dir) !void {
         file_ext = ".html";
     }
 
-    std.log.info("Opening {s}", .{file_path});
+    try stdout.print("Opening {s}\n", .{file_path});
 
     var body_file = dir.openFile(file_path, .{}) catch {
         try stream.writeAll(

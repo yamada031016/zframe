@@ -1,5 +1,7 @@
 /doc/
 /zig-out/
 /zig-cache/
+*/zig-out/
+*/zig-cache/
 build.zig.zon
 
