@@ -1,4 +1,4 @@
-= Work log in Zig Web Frontend Framework
+= Zig Web Frontend Frameworkの作業ログ
 
 == What to write this.
 - Y
@@ -30,3 +30,91 @@ If I ever decide to implement SSR or CSR, this library will be very useful.
 == T
 - Web server hot-reload support
 - Investigating a Mysterious Bug
+
+= Week 2
+== Y
+=== Server
+- support hot-reload
+- search advanced web server.
+- learn about HTTP/1.1
+=== Frontend
+- solved a misterious error.
+- searched a principle of Axios
+- searched state management 
+=== Wasm
+- thinked good ways to use wasm 
+
+= Week 3
+== Y
+=== Server
+- implemented HTTP/1.1
+- learn about HTTP/2
+=== Frontend
+- considerate state management 
+- learned about page component and router
+=== Wasm
+- considerate about JS gloo code.
+
+= Week 4
+== Y
+=== Server
+- considerated HTTP/2 implements
+=== Frontend
+- implemented simple state management.
+- considerated about page component and router
+=== Wasm
+- considerated about simple Wasm api structure
+
+= Week 5
+== Y
+=== Server
+- implemented a part of HTTP/2
+=== Frontend
+- implemented page component and simple router
+- mkdir pages and targets
+- considerated about http fetch library
+- learned about template system
+=== Wasm
+- implmented simple Wasm api system
+
+= SecHack365 event 2
+== Server
+- full HTTP/1.1
+- parts of HTTP/2
+- hot-reload
+== Frontend
+- page and router
+- complete component structure
+- simple state management
+== Wasm
+- simple Wasm api system
+
+= Week 6
+== Y
+=== Server
+- implemented HTTP/2
+=== Frontend
+- developed simple http fetch library
+- considered about template system
+=== Wasm
+- implmented multiple Wasm api systems
+
+= Week 7
+== Y
+=== Server
+- created 404 page and other important error message.
+=== Frontend
+- integrated simple http fetch library
+- implemented template system
+=== Wasm
+- learned about good ways to distribute Wasm
+
+= Week 7
+== Y
+=== Server
+- improved log system
+- learned about user configuration
+=== Frontend
+- implemented template system
+=== Wasm
+- learned about good ways to distribute Wasm
