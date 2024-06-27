@@ -18,8 +18,9 @@
             {env}
         ).then(obj => {
             var buf = new Uint32Array(memory.buffer, 0, 2)
-            obj.instance.exports.set(buf)
-            obj.instance.exports.hello()
+            //obj.instance.exports.set(buf)
+            var a = obj.instance.exports.add(1, 2)
+            console.log("a", a)
             const mem = new Uint8Array(memory.buffer, buf[0], buf[1]);
             const dec = new TextDecoder();
             const hello = dec.decode(mem)

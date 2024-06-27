@@ -19,6 +19,8 @@ pub fn render(id: []const u8, args: anytype) !void {
         \\<meta charset="utf-8" />
         \\<title>WebAssembly</title>
         \\</head>
+        \\<script type="module">const env = { memory: new WebAssembly.Memory({initial: 2, maximum: 2}),};var memory = env.memory; WebAssembly.instantiateStreaming( fetch("monitor.wasm"),{env}).then(obj => {if(obj.instance.exports.monitor()) {}});</script>
+
     );
     defer index.close();
 

@@ -7,6 +7,10 @@ pub export fn hello() void {
     buffer.ptr = @constCast(result.ptr);
 }
 
-export fn add(a: u8, b: u8) u8 {
+pub export fn add(a: u8, b: u8) u8 {
     return a + b;
+}
+
+pub fn main() void {
+    return;
 }

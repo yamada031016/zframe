@@ -5,9 +5,8 @@ pub fn createElement(comptime tagName: Tag) switch (tagName) {
     .p, .heading, .div => Element,
     else => Element,
 } {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-    _ = allocator;
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    // const allocator = gpa.allocator();
     return switch (tagName) {
         else => {
             var tmp = [_]*const Element{undefined} ** 10;
