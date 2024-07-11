@@ -1,7 +1,7 @@
 const std = @import("std");
 const HTTPServer = @import("server.zig").HTTPServer;
 
-pub fn main() anyerror!void {
+pub fn main() !void {
     var args = std.process.args();
     const exe_name = args.next() orelse "toyserver";
     const public_path = args.next() orelse {

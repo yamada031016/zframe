@@ -52,15 +52,25 @@ pub const HTTPServer = struct {
     pub fn serve(self:*HTTPServer) !noreturn {
         try stdout.print("listening on {s}:{}\npress Ctrl-C to quit...\n", .{self_ipaddr, self_port_addr});
         while (self.listener.accept()) |conn| {
-        // if (self.listener.accept()) |conn| {
-            std.log.info("Accepted Connection from: {}", .{conn.address});
-            self.handleStream(@constCast(&conn.stream)) catch |err| {
-                if (@errorReturnTrace()) |bt| {
-                    std.log.err("Failed to serve client: {}: {}", .{ err, bt });
-                } else {
-                    std.log.err("Failed to serve client: {}", .{err});
+            const fork_pid = try std.posix.fork();
+            if (fork_pid == 0) {
+                defer conn.stream.close();
+                // child process
+                std.log.info("Accepted Connection from: {}", .{conn.address});
+                self.handleStream(@constCast(&conn.stream)) catch |err| {
+                    if (@errorReturnTrace()) |bt| {
+                        std.log.err("Failed to serve client: {}: {}", .{ err, bt });
+                    } else {
+                        std.log.err("Failed to serve client: {}", .{err});
+                    }
+                };
+            } else {
+                // parent process
+                const wait_result = std.posix.waitpid(fork_pid, 0);
+                if (wait_result.status != 0) {
+                    try stdout.print("終了コード: {}\n", .{wait_result.status});
                 }
-            };
+            }
             // std.debug.print("fileName:{s}\n", .{files[0]});
             // monitor = try FileMonitor.init("index.html", self.dir);
             //
@@ -76,7 +86,6 @@ pub const HTTPServer = struct {
             //         };
             //     }
             // }
-            conn.stream.close();
         } else |err| {
             std.log.err("Failed to accept connection: {}", .{err});
             return err;
@@ -178,18 +187,17 @@ pub const HTTPServer = struct {
         std.log.info(" >>>\n" ++ http_head, .{ mime.asText(), file_len });
         try stream.writer().print(http_head, .{ mime.asText(), file_len });
 
-        // var send_total: usize = 0;
-        // var send_len: usize = 0;
-        // while (true) {
-        var buf: [2048]u8 = undefined;
-        const file_read_len = try body_file.readAll(&buf);
-        try stream.writer().writeAll(buf[0..file_read_len]);
+        var send_total: usize = 0;
+        var send_len: usize = 0;
+        while (true) {
+            var buf: [2048]u8 = undefined;
+            send_len = try body_file.read(&buf);
+            if (send_len == 0)
+            break;
+            try stream.writer().writeAll(buf[0..send_len]);
 
-        // if (send_len == 0)
-        //     break;
-        //
-        // send_total += send_len;
-        // }
+            send_total += send_len;
+        }
 
     }
 };
