@@ -67,7 +67,6 @@ pub const Node = struct {
             },
 
             .image => |*image| {
-                // tmp.elem = Element{ .image = image.setSrc("../memory.png")};
                 inline for (args) |arg| {
                     switch (@typeInfo(@TypeOf(arg))) {
                         .Pointer => |pointer| {
@@ -96,6 +95,52 @@ pub const Node = struct {
                                 } else {
                                     image.*.src = @constCast(arg);
                                 }
+                            }
+                        },
+                        else => {},
+                    }
+                }
+            },
+            .link => |*link| {
+                inline for (args, 0..) |arg, i| {
+                    switch (@typeInfo(@TypeOf(arg))) {
+                        .Pointer => |pointer| {
+                            if (@typeInfo(pointer.child) == .Array) {
+                                if (i < args.len - 1 and @typeInfo(@TypeOf(args[i+1])) == .Struct) {
+                                if(link.href) |_| {
+                                    link.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i+1]) catch @panic("hoge"));
+                                } else {
+                                    link.*.href = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i+1]) catch @panic("hoge"));
+                                }
+
+                                } else {
+                                if(link.href) |_| {
+                                    link.*.template = @constCast(arg);
+                                } else {
+                                    link.*.href = @constCast(arg);
+                                }
+                                }
+                            } else if (pointer.child == u8) {
+                                if(link.href) |_| {
+                                    link.*.template = @constCast(arg);
+                                } else {
+                                    link.*.href = @constCast(arg);
+                                }
+                            }
+                        },
+                        .Struct => {
+                            if (@TypeOf(arg) == Node) {
+                                tmp.children.append(arg) catch |e| switch (e) {
+                                    else => @panic("failed to append children"),
+                                };
+                            } else if (@TypeOf(arg) == Element) {
+                                const node = Node{
+                                    .elem = Element{.plane = arg},
+                                    .children = std.ArrayList(Node).init(alloc),
+                                };
+                                tmp.children.append(node) catch |e| switch (e) {
+                                    else => @panic("failed to append children"),
+                                };
                             }
                         },
                         else => {},

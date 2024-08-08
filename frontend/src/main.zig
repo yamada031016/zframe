@@ -10,6 +10,7 @@ pub fn main() !void {
     const raw = node.createNode(.raw);
     const p = node.createNode(.p);
     const img = node.createNode(.img);
+    const a = node.createNode(.a);
 
     const epoch = std.time.epoch.EpochSeconds{ .secs = @intCast(std.time.timestamp()) };
     const year = epoch.getEpochDay().calculateYearDay();
@@ -23,11 +24,12 @@ pub fn main() !void {
         README(),
 
         raw.init(.{
-            \\ <p>memory usage</p>
-            \\ <img src="../memory.png" alt="image" >
+            \\ <p>hoge</p>
         }),
 
         img.init(.{"../memory.png",.{}, "テストやで"}),
+        a.init(.{"test",.{},  "test"}),
+
         div.setClass("text-center border-b border-300-cyan").setId("main").init(.{
             div.setClass("pb-2").init(.{
                 copyright.setClass("text-sm"),

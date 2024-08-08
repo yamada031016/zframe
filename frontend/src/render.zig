@@ -38,7 +38,6 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                 try writer.print("<{s}", .{tag});
             }
             if (plane.id) |_id| {
-                // std.debug.print("class! {s}\n", .{class});
                 try writer.print("id=\"{s}\">", .{ _id });
             } else {
                 try writer.print(">", .{});
@@ -47,17 +46,8 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                 try writer.print("{s}", .{temp});
             }
 
-            // if (code.child) |child| {
             for (node.children.items) |child| {
-                // if (code.children) |children| {
-                //     for (children) |child| {
-                // std.debug.print("cld:{any}\n", .{(child)});
-                // const children_slice = try @constCast(&code.children).toOwnedSlice();
-                // for (children_slice) |child| {
-                // std.debug.print("child:{any}\n", .{code});
-                // try parse((child[0].*), writer);
                 try parse(&child, writer);
-                // }
             }
 
             try writer.print("</{s}>", .{tag});
@@ -68,7 +58,35 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
             if(image.alt) |alt| {
                 try writer.print("alt=\"{s}\"", .{ alt });
             }
-            try writer.print(">", .{});
-        }
+            if (node.getClass()) |class| {
+                try writer.print("class=\"{s}\"", .{class });
+            }
+            if (image.id) |_id| {
+                try writer.print("id=\"{s}\">", .{ _id });
+            } else {
+                try writer.print(">", .{});
+            }
+        },
+        .link => |*link| {
+            const href = link.href orelse @panic("Link Element must have hyperlink argument.");
+            try writer.print("<a href=\"{s}\"", .{ href });
+            if (node.getClass()) |class| {
+                try writer.print("class=\"{s}\"", .{ class });
+            }
+            if (link.id) |_id| {
+                try writer.print("id=\"{s}\">", .{ _id });
+            } else {
+                try writer.print(">", .{});
+            }
+            if (link.template) |temp| {
+                try writer.print("{s}", .{temp});
+            }
+
+            for (node.children.items) |child| {
+                try parse(&child, writer);
+            }
+
+            try writer.print("</a>", .{});
+        },
     }
 }

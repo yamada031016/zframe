@@ -8,6 +8,11 @@ pub fn createElement(comptime tagName: Tag) Element {
                 .image = Image{}
             };
         },
+        .a => {
+            return Element{
+                .link = Link{}
+            };
+        },
         else => {
             return Element{
                 .plane = PlaneElement{
@@ -21,11 +26,13 @@ pub fn createElement(comptime tagName: Tag) Element {
 const ElementType = enum {
     plane,
     image,
+    link,
 };
 
 pub const Element = union(ElementType) {
     plane: PlaneElement,
     image: Image,
+    link: Link,
 };
 
 pub const PlaneElement = struct {
@@ -47,3 +54,14 @@ pub const Image = struct {
     alt: ?[]u8 = null,
 };
 
+
+pub const Link = struct {
+    const Self = @This();
+
+    class: ?[]u8 = null,
+    id: ?[]u8 = null,
+    template: ?[]u8 = null,
+
+    href: ?[]u8 = null,
+    lazy: bool = false,
+};
