@@ -1,7 +1,10 @@
-/doc/
-/zig-out/
-/zig-cache/
-*/zig-out/
-*/zig-cache/
+doc
+doc/
+zig-out
+zig-out/
+zig-cache
+zig-cache/
+.zig-cache
+.zig-cache/
 build.zig.zon
 
