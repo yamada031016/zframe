@@ -54,7 +54,6 @@ pub const HTTPServer = struct {
         while (self.listener.accept()) |conn| {
             const fork_pid = try std.posix.fork();
             if (fork_pid == 0) {
-                defer conn.stream.close();
                 // child process
                 std.log.info("Accepted Connection from: {}", .{conn.address});
                 self.handleStream(@constCast(&conn.stream)) catch |err| {
@@ -86,6 +85,7 @@ pub const HTTPServer = struct {
             //         };
             //     }
             // }
+            conn.stream.close();
         } else |err| {
             std.log.err("Failed to accept connection: {}", .{err});
             return err;
@@ -138,7 +138,6 @@ pub const HTTPServer = struct {
         if (!mem.startsWith(u8, tok_itr.rest(), "HTTP/1.1\r\n"))
         return ServeFileError.HeaderDidNotMatch;
 
-        // var tmp = [_][]const u8{file_path};
         return file_path;
     }
 

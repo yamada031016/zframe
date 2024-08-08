@@ -8,7 +8,6 @@ pub fn render(id: []const u8, args: anytype) !void {
     _ = id;
 
     const root = n.createNode(.div).init(args);
-    // if (args.len == 0) return;
     var index = try std.fs.cwd().createFile("index.html", .{});
     var writer = index.writer();
     try writer.writeAll(
@@ -25,27 +24,26 @@ pub fn render(id: []const u8, args: anytype) !void {
     defer index.close();
 
     try writer.writeAll("\n<body>");
-    // inline for (args) |node| {
     try parse(&root, @constCast(&writer));
-    // try parse((&node), @constCast(&writer));
-    // }
     try writer.print("</body></html>", .{});
 }
 
-// fn parse(code: *const Element, writer: *std.fs.File.Writer) !void {
 fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
-    var elem = node.elem;
-    switch (@typeInfo(@TypeOf(elem))) {
-        // .Pointer => {},
-        else => {
-            const tag = elem.tag.asText();
-            if (elem.class) |class| {
-                std.debug.print("class! {s}\n", .{class});
-                try writer.print("<{s} class=\"{s}\">", .{ tag, class });
+    switch (node.elem) {
+        .plane => |*plane| {
+            const tag = plane.tag.asText();
+            if (node.getClass()) |class| {
+                try writer.print("<{s} class=\"{s}\"", .{ tag, class });
             } else {
-                try writer.print("<{s}>", .{tag});
+                try writer.print("<{s}", .{tag});
             }
-            if (elem.template) |temp| {
+            if (plane.id) |_id| {
+                // std.debug.print("class! {s}\n", .{class});
+                try writer.print("id=\"{s}\">", .{ _id });
+            } else {
+                try writer.print(">", .{});
+            }
+            if (plane.template) |temp| {
                 try writer.print("{s}", .{temp});
             }
 
@@ -53,7 +51,7 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
             for (node.children.items) |child| {
                 // if (code.children) |children| {
                 //     for (children) |child| {
-                std.debug.print("cld:{any}\n", .{(child)});
+                // std.debug.print("cld:{any}\n", .{(child)});
                 // const children_slice = try @constCast(&code.children).toOwnedSlice();
                 // for (children_slice) |child| {
                 // std.debug.print("child:{any}\n", .{code});
@@ -64,5 +62,13 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
 
             try writer.print("</{s}>", .{tag});
         },
+        .image => |*image| {
+            const src = image.src orelse @panic("Image Element must have image path argument.");
+            try writer.print("<img src=\"{s}\"", .{ src });
+            if(image.alt) |alt| {
+                try writer.print("alt=\"{s}\"", .{ alt });
+            }
+            try writer.print(">", .{});
+        }
     }
 }

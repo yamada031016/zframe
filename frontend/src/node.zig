@@ -19,63 +19,113 @@ pub const Node = struct {
     elem: Element,
     children: std.ArrayList(Node),
 
+    class: ?[]u8 = null,
+    id: ?[]u8 = null,
+
     pub fn init(self: *const Node, args: anytype) Node {
         var tmp = Node{
             .elem = self.elem,
+            .class = self.class,
+            .id = self.id,
             .children = std.ArrayList(Node).init(alloc),
         };
-        inline for (args, 0..) |arg, i| {
-            switch (@typeInfo(@TypeOf(arg))) {
-                .Pointer => |pointer| {
-                    if (@typeInfo(pointer.child) == .Array) {
-                        if (i < args.len - 1) {
-                            // stringとみなす
-                            tmp.elem.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
-                        } else {
-                            // 続くargがなければ非フォーマット文字列
-                            tmp.elem.template = @constCast(arg);
-                        }
-                    } else if (pointer.child == u8) {
-                        tmp.elem.template = @constCast(arg);
+        switch(tmp.elem) {
+            .plane => |*plane| {
+                inline for (args, 0..) |arg, i| {
+                    switch (@typeInfo(@TypeOf(arg))) {
+                        .Pointer => |pointer| {
+                            if (@typeInfo(pointer.child) == .Array) {
+                                if (i < args.len - 1) {
+                                    // stringとみなす
+                                    plane.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                } else {
+                                    // 続くargがなければ非フォーマット文字列
+                                    plane.*.template = @constCast(arg);
+                                }
+                            } else if (pointer.child == u8) {
+                                plane.*.template = @constCast(arg);
+                            }
+                        },
+                        .Struct => {
+                            if (@TypeOf(arg) == Node) {
+                                tmp.children.append(arg) catch |e| switch (e) {
+                                    else => @panic("failed to append children"),
+                                };
+                            } else if (@TypeOf(arg) == Element) {
+                                const node = Node{
+                                    .elem = Element{.plane = arg},
+                                    .children = std.ArrayList(Node).init(alloc),
+                                };
+                                tmp.children.append(node) catch |e| switch (e) {
+                                    else => @panic("failed to append children"),
+                                };
+                            }
+                        },
+                        else => {},
                     }
-                },
-                .Struct => {
-                    if (@TypeOf(arg) == Node) {
-                        tmp.children.append(arg) catch |e| switch (e) {
-                            else => @panic("failed to append children"),
-                        };
-                    } else if (@TypeOf(arg) == Element) {
-                        const node = Node{
-                            .elem = arg,
-                            .children = std.ArrayList(Node).init(alloc),
-                        };
-                        tmp.children.append(node) catch |e| switch (e) {
-                            else => @panic("failed to append children"),
-                        };
+                }
+            },
+
+            .image => |*image| {
+                // tmp.elem = Element{ .image = image.setSrc("../memory.png")};
+                inline for (args) |arg| {
+                    switch (@typeInfo(@TypeOf(arg))) {
+                        .Pointer => |pointer| {
+                            if (@typeInfo(pointer.child) == .Array) {
+                                // if (i < args.len - 1 and @typeInfo(@TypeOf(args[i+1])) == .Struct) {
+                                //     // stringとみなす
+                                //     // srcが未設定ならsrcと判定. srcが設定済みだとaltと判定
+                                //     // argsはsrc, altの順番で渡す必要がある
+                                //     // .{.src ="src"}のように渡したいが、画像タグ以外のargsも何故か実行されてエラーが出る(謎)
+                                //         if(image.src) |_| {
+                                //             image.*.alt = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i+1]) catch @panic("hoge"));
+                                //         } else {
+                                //             image.*.src = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i+1]) catch @panic("hoge"));
+                                //         }
+                                // } else {
+                                    // 続くargがなければ非フォーマット文字列
+                                    if(image.src) |_| {
+                                        image.*.alt = @constCast(arg);
+                                    } else {
+                                        image.*.src = @constCast(arg);
+                                    }
+                                // }
+                            } else if (pointer.child == u8) {
+                                if(image.src) |_| {
+                                    image.*.alt = @constCast(arg);
+                                } else {
+                                    image.*.src = @constCast(arg);
+                                }
+                            }
+                        },
+                        else => {},
                     }
-                },
-                else => {},
-            }
+                }
+            },
         }
-        std.debug.print("tmp:{any}\n", .{tmp});
         return tmp;
     }
 
-    pub fn setClass(self: *const Node, comptime css: []const u8) Node {
-        return Node{
-            .children = self.children,
-            .elem = self.elem.setClass(css),
-        };
+    pub fn setClass(self: *const Node, comptime class_name: []const u8) Node {
+        var tmp = self.*;
+        tmp.class = @constCast(class_name);
+        return tmp;
     }
+
+    pub fn getClass(self:*const Node) ?[]u8 {
+        return self.class;
+    }
+
+    pub fn setId(self: *const Node, comptime id_name: []const u8) Node {
+        var tmp = self.*;
+        tmp.id = @constCast(id_name);
+        return tmp;
+    }
+
 
     pub fn deinit(self: *Node) void {
         _ = self;
         const deinit_status = gpa.deinit();
         if (deinit_status == .leak) std.testing.expect(false) catch @panic("Memory leaked");
-    }
-
-    pub fn addChild(self: *Node, value: i32) !void {
-        var child = try Node.init(alloc, value);
-        try self.children.append(&child);
     }
 };
