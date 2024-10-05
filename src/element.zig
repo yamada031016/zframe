@@ -33,7 +33,7 @@ const ElementType = enum {
     hyperlink,
     link,
     meta,
-    custom,
+    // custom,
 };
 
 /// This union provides abstract interface for users
@@ -43,6 +43,7 @@ pub const Element = union(ElementType) {
     hyperlink: HyperLink,
     link: Link,
     meta: Meta,
+    // custom: Custom,
 };
 
 /// This structure represents Generic HTML Element such as h1, p, and so on.
