@@ -198,6 +198,6 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
             }
             try writer.print(">", .{});
         },
-        .custom => |*custom| {},
+        // .custom => |*custom| {},
     }
 }
