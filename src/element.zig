@@ -17,6 +17,9 @@ pub fn createElement(comptime tagName: Tag) Element {
         .meta => {
             return Element{ .meta = Meta{} };
         },
+        .meta => {
+            return Element{ .custom = Custom{} };
+        },
         else => {
             return Element{ .plane = PlaneElement{
                 .tag = tagName,
