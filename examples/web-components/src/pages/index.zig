@@ -66,6 +66,15 @@ fn card(title: []const u8, description: []const u8) node.Node {
     });
 }
 
+fn resultPreview() node.Node {
+    const custom = node.createNode(.custom);
+    const result_preview = custom.setId("result-preview");
+    const h2 = node.createNode(.h2);
+    return result_preview.init(.{
+        h2.setClass("text-xl text-red-500").init("Test"),
+    });
+}
+
 const Layout = @import("components").layout.Layout;
 pub fn main() !void {
     try z.render.render(@src(), Layout(index()));

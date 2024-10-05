@@ -203,8 +203,8 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                 try generateWebComponents(node, output.writer());
             };
 
-            var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{}) catch recover: {
-                break :recover try std.fs.cwd().createFile(".zig-cache/head.html", .{});
+            var head_output = std.fs.cwd().openFile(".zig-cache/head.html", .{}) catch recover: {
+                break :recover std.fs.cwd().createFile(".zig-cache/head.html", .{}) catch unreachable;
             };
             var head_writer = head_output.writer();
             try head_writer.print("\n<head>", .{});
