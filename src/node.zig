@@ -62,14 +62,6 @@ pub const Node = struct {
                                     tmp.children.append(arg) catch |e| switch (e) {
                                         else => @panic("failed to append children"),
                                     };
-                                } else if (@TypeOf(arg) == Element) {
-                                    const node = Node{
-                                        .elem = Element{ .plane = arg },
-                                        .children = std.ArrayList(Node).init(alloc),
-                                    };
-                                    tmp.children.append(node) catch |e| switch (e) {
-                                        else => @panic("failed to append children"),
-                                    };
                                 }
                             },
                             else => {},
@@ -144,14 +136,6 @@ pub const Node = struct {
                             .Struct => {
                                 if (@TypeOf(arg) == Node) {
                                     tmp.children.append(arg) catch |e| switch (e) {
-                                        else => @panic("failed to append children"),
-                                    };
-                                } else if (@TypeOf(arg) == Element) {
-                                    const node = Node{
-                                        .elem = Element{ .plane = arg },
-                                        .children = std.ArrayList(Node).init(alloc),
-                                    };
-                                    tmp.children.append(node) catch |e| switch (e) {
                                         else => @panic("failed to append children"),
                                     };
                                 }
@@ -245,15 +229,16 @@ pub const Node = struct {
                                     tmp.children.append(arg) catch |e| switch (e) {
                                         else => @panic("failed to append children"),
                                     };
-                                } else if (@TypeOf(arg) == Element) {
-                                    const node = Node{
-                                        .elem = Element{ .plane = arg },
-                                        .children = std.ArrayList(Node).init(alloc),
-                                    };
-                                    tmp.children.append(node) catch |e| switch (e) {
-                                        else => @panic("failed to append children"),
-                                    };
                                 }
+                                // else if (@TypeOf(arg) == Element) {
+                                //         const node = Node{
+                                //             .elem = Element{ .plane = arg },
+                                //             .children = std.ArrayList(Node).init(alloc),
+                                //         };
+                                //         tmp.children.append(node) catch |e| switch (e) {
+                                //             else => @panic("failed to append children"),
+                                //         };
+                                //     }
                             },
                             else => {},
                         }
