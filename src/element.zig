@@ -44,6 +44,31 @@ pub const Element = union(ElementType) {
     link: Link,
     meta: Meta,
     custom: Custom,
+
+    pub const ElementError = error{
+        TemplateNotSupport,
+        TemplateNotSetting,
+    };
+
+    pub fn getTagName(self: *const Element) []const u8 {
+        switch (self.*) {
+            .plane => |p| return p.tag.asText(),
+            .image => return "img",
+            .hyperlink => return "a",
+            .link => return "link",
+            .meta => return "meta",
+            .custom => return "custom",
+        }
+    }
+
+    pub fn getTemplate(self: *const Element) ElementError![]u8 {
+        switch (self.*) {
+            .plane => |*elem| return if (elem.template) |e| e else ElementError.TemplateNotSetting,
+            .hyperlink => |*elem| return if (elem.template) |e| e else ElementError.TemplateNotSetting,
+            .custom => |*elem| return if (elem.template) |e| e else ElementError.TemplateNotSetting,
+            .image, .link, .meta => return ElementError.TemplateNotSupport,
+        }
+    }
 };
 
 /// This structure represents Generic HTML Element such as h1, p, and so on.

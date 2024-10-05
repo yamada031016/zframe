@@ -3,6 +3,7 @@ const std = @import("std");
 
 // zig fmt: off
 pub const Tag = enum {
+    custom,
     /// empty tag is unique in SSG-ZIG.
     /// empty tag is omitted when rendering its children.
     /// if you want writing raw html code, you should use raw tag.
@@ -27,6 +28,7 @@ pub const Tag = enum {
 
     pub fn asText(tag: *const Tag) []const u8 {
         return switch (tag.*) {
+            .custom => "custom",
             .empty => "empty", .raw => "raw",
             .div => "div", .article => "article", .span => "span",
             .html => "html",

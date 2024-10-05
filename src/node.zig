@@ -22,6 +22,7 @@ pub const Node = struct {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
     elem: Element,
+    // consider to use MultiArrayList
     children: std.ArrayList(Node),
 
     class: ?[]u8 = null,

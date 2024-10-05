@@ -43,7 +43,6 @@ fn generateHtmlFile(id: std.builtin.SourceLocation) !std.fs.File {
 }
 
 pub fn render(id: std.builtin.SourceLocation, args: Node) !void {
-    // std.debug.print("File: {s}\n", .{id.file});
     const html = generateHtmlFile(id) catch |e| switch (e) {
         RenderError.InvalidPageFilePath => {
             std.debug.print("invalid file path: {s}. move below src/pages/**", .{id.file});
@@ -52,9 +51,7 @@ pub fn render(id: std.builtin.SourceLocation, args: Node) !void {
         else => return,
     };
     try html.chmod(0o777);
-    defer {
-        html.close();
-    }
+    defer html.close();
 
     // var root = applicateLayout: {
     //     std.fs.cwd().access("src/components/layout.zig", .{}) catch {
@@ -106,13 +103,14 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                 else => {
                     const tag = plane.tag.asText();
                     if (std.mem.eql(u8, tag, "head")) {
-                        // headタグの内容をtmp.htmlに避難
+                        // headタグの内容をhead.htmlに記入
                         var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .read = true });
                         var head_writer = head_output.writer();
                         try head_writer.print("\n<head>", .{});
                         for (node.children.items) |child| {
                             try parse(&child, &head_writer);
                         }
+                        head_output.close();
                     } else {
                         if (node.class) |class| {
                             try writer.print("<{s} class=\"{s}\"", .{ tag, class });
@@ -198,6 +196,74 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
             }
             try writer.print(">", .{});
         },
-        // .custom => |*custom| {},
+        .custom => {
+            const fileName = try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/webcomponents/{s}.js", .{node.id});
+            std.fs.cwd().access(fileName, .{}) catch {
+                const output = try std.fs.cwd().createFile(fileName, .{});
+                try generateWebComponents(node, output.writer());
+            };
+
+            var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{}) catch recover: {
+                break :recover try std.fs.cwd().createFile(".zig-cache/head.html", .{});
+            };
+            var head_writer = head_output.writer();
+            try head_writer.print("\n<head>", .{});
+            try head_writer.print("<script type='module'src='{s}'defer></script>", .{std.fs.path.basename(fileName)});
+            if (node.id) |id| {
+                try writer.print("<div id={s}></div>", .{id});
+            }
+        },
     }
+}
+
+fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
+    const webcomponents_template = "customElements.define('{s}',class extends HTMLDivElement{{constructor(){{super();const shadowRoot=this.attachShadow({{mode:'open'}});";
+    if (node.id) |id| {
+        try writer.print(webcomponents_template, .{id});
+    }
+    for (node.children.items) |child| {
+        try writer.writeAll(try generateJsElement(child));
+        for (child.children.items) |c| {
+            try writer.writeAll(try generateJsElement(c));
+        }
+        try writer.print("shadowRoot.appendChild({s}).cloneNode(true)", .{child.elem.getTagName()});
+    }
+    try writer.writeAll("}},{extends:'div'})");
+}
+
+inline fn generateJsElement(node: n.Node) ![]const u8 {
+    const tag = node.elem.getTagName();
+    var buf = std.ArrayList(u8).init(std.heap.page_allocator);
+    var writer = buf.writer();
+    try writer.print("const {s}=document.createElement('{s}');", .{ tag, tag });
+
+    if (node.class) |class| {
+        try writer.print("{s}.className='{s}';", .{ tag, class });
+    }
+    if (node.id) |id| {
+        try writer.print("{s}.id='{s}';", .{ tag, id });
+    }
+    if (node.elem.getTemplate()) |temp| {
+        try writer.print("{s}.textContent='{s}';", .{ tag, temp });
+    } else |e| {
+        std.debug.print("{s}\n{s} element does not support template.\n", .{ @errorName(e), tag });
+    }
+    return try buf.toOwnedSlice();
+}
+
+test "generateWebComponents" {
+    const h1 = n.createNode(.h1).setId("testId").setClass("test testClass").init(.{"test text content here!"});
+    const custom = n.createNode(.custom);
+    const test_text = custom.setId("test-text").init(.{h1});
+
+    var result: [128 * 4]u8 = undefined;
+    var buf = std.io.fixedBufferStream(&result);
+    try generateWebComponents(&test_text, buf.writer());
+    try std.testing.expectEqualStrings("customElements.define('test-text',class extends HTMLDivElement{constructor(){super();const shadowRoot=this.attachShadow({mode:'open'});const h1=document.createElement('h1');h1.className='test testClass';h1.id='testId';h1.textContent='test text content here!';shadowRoot.appendChild(h1).cloneNode(true)}},{extends:'div'})", result[0..buf.pos]);
+}
+
+test "generateJsElement" {
+    const h1 = n.createNode(.h1).setId("testId").setClass("test testClass").init(.{"test text content here!"});
+    const result = try generateJsElement(h1);
+    try std.testing.expectEqualStrings("const h1=document.createElement('h1');h1.className='test testClass';h1.id='testId';h1.textContent='test text content here!';", result);
 }
