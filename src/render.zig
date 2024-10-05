@@ -203,11 +203,15 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                     const output = try std.fs.cwd().createFile(fileName, .{});
                     try generateWebComponents(node, output.writer());
                 };
-                std.debug.print("id: {s}\n", .{id});
 
-                var head_output = std.fs.cwd().openFile(".zig-cache/head.html", .{}) catch recover: {
-                    break :recover std.fs.cwd().createFile(".zig-cache/head.html", .{}) catch unreachable;
+                std.fs.cwd().access(fileName, .{}) catch {
+                    _ = try std.fs.cwd().createFile(".zig-cache/head.html", .{});
                 };
+                var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{});
+                // var head_output = std.fs.cwd().openFile(".zig-cache/head.html", .{}) catch recover: {
+                //     break :recover std.fs.cwd().createFile(".zig-cache/head.html", .{}) catch unreachable;
+                // };
+                std.debug.print("id: {s}\n", .{id});
                 var head_writer = head_output.writer();
                 try head_writer.print("\n<head>", .{});
                 try head_writer.print("<script type='module'src='{s}'defer></script>", .{std.fs.path.basename(fileName)});
