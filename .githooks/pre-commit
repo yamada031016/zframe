@@ -1,15 +1,22 @@
 #!/bin/sh
 
-# test for building each example.
+# test for building zframe.
+zig build
+  if [ $? -eq 0 ]; then
+    echo -e "\x1B[1;92m(zframe)build success.\x1B[m"
+  else
+    echo -e "\x1B[1;91m(zframe)build failed.\x1B[m"
+  fi
 
+# test for building each example.
 for dir in `find examples/* -maxdepth 0 -type d`; do
   cd $dir
   rm -rf .zig-cache
   zig build run
   if [ $? -eq 0 ]; then
-    echo -e "\x1B[1;92mbuild success at $dir.\x1B[m"
+    echo -e "\x1B[1;92m($dir)build success.\x1B[m"
   else
-    echo -e "\x1B[1;91mbuild failed at $dir.\x1B[m"
+    echo -e "\x1B[1;91m($dir)build failed.\x1B[m"
   fi
   cd ../.. # back to project-root
 done
