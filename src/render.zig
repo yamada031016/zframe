@@ -199,9 +199,11 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
         .custom => {
             if (node.id) |id| {
                 const fileName = try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/webcomponents/{s}.js", .{id});
-                std.fs.cwd().access(fileName, .{}) catch {
+                std.debug.print("ここ!", .{});
+                std.fs.cwd().access(fileName, .{}) catch recover: {
                     const output = try std.fs.cwd().createFile(fileName, .{});
                     try generateWebComponents(node, output.writer());
+                    break :recover;
                 };
                 std.debug.print("fuga", .{});
 
