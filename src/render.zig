@@ -208,7 +208,7 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                 std.fs.cwd().access(fileName, .{}) catch {
                     _ = try std.fs.cwd().createFile(".zig-cache/head.html", .{});
                 };
-                var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
+                var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .truncate = false });
                 var head_writer = head_output.writer();
                 try head_writer.print("\n<head>", .{});
                 try head_writer.print("<script type='module'src='{s}'defer></script>", .{std.fs.path.basename(fileName)});
