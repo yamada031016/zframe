@@ -78,178 +78,176 @@ pub const Node = struct {
             },
 
             .image => |*image| {
-                const metaType = switch (@typeInfo(@TypeOf(args))) {
-                    .Struct => |s| s,
-                    else => |e| e,
-                };
-                if (metaType.is_tuple) {} else {
-                    inline for (@field(@TypeOf(image.*), "attributes")) |attr| {
-                        if (@hasField(@TypeOf(args), attr)) {
-                            if (@field(image, attr) == null) {
-                                switch (@typeInfo(@TypeOf(@field(args, attr)))) {
-                                    .Pointer => @field(image, attr) = @constCast(@field(args, attr)),
-                                    else => @field(image, attr) = @field(args, attr),
+                switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| {
+                        if (s.is_tuple) {} else {
+                            inline for (@field(@TypeOf(image.*), "attributes")) |attr| {
+                                if (@hasField(@TypeOf(args), attr)) {
+                                    if (@field(image, attr) == null) {
+                                        switch (@typeInfo(@TypeOf(@field(args, attr)))) {
+                                            .Pointer => @field(image, attr) = @constCast(@field(args, attr)),
+                                            else => @field(image, attr) = @field(args, attr),
+                                        }
+                                    }
+                                } else {
+                                    std.debug.print("invalid argument:{any}\n", .{args});
                                 }
                             }
-                        } else {
-                            std.debug.print("invalid argument:{any}\n", .{args});
                         }
-                    }
+                    },
+                    else => unreachable,
                 }
             },
             .hyperlink => |*hyperlink| {
-                const metaType = switch (@typeInfo(@TypeOf(args))) {
-                    .Struct => |s| s,
-                    else => |e| e,
-                };
-                if (metaType.is_tuple) {
-                    inline for (args, 0..) |arg, i| {
-                        switch (@typeInfo(@TypeOf(arg))) {
-                            .Pointer => |pointer| {
-                                if (@typeInfo(pointer.child) == .Array) {
-                                    if (i < args.len - 1 and @typeInfo(@TypeOf(args[i + 1])) == .Struct) {
-                                        if (hyperlink.href) |_| {
-                                            hyperlink.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
-                                        } else {
-                                            hyperlink.*.href = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
-                                            if (args.len < 3) {
-                                                hyperlink.*.template = hyperlink.*.href;
+                switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| {
+                        if (s.is_tuple) {
+                            inline for (args, 0..) |arg, i| {
+                                switch (@typeInfo(@TypeOf(arg))) {
+                                    .Pointer => |pointer| {
+                                        if (@typeInfo(pointer.child) == .Array) {
+                                            if (i < args.len - 1 and @typeInfo(@TypeOf(args[i + 1])) == .Struct) {
+                                                if (hyperlink.href) |_| {
+                                                    hyperlink.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                                } else {
+                                                    hyperlink.*.href = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                                    if (args.len < 3) {
+                                                        hyperlink.*.template = hyperlink.*.href;
+                                                    }
+                                                }
+                                            } else {
+                                                if (hyperlink.href) |_| {
+                                                    hyperlink.*.template = @constCast(arg);
+                                                } else {
+                                                    hyperlink.*.href = @constCast(arg);
+                                                    if (args.len < 2) {
+                                                        hyperlink.*.template = hyperlink.*.href;
+                                                    }
+                                                }
+                                            }
+                                        } else if (pointer.child == u8) {
+                                            if (hyperlink.href) |_| {
+                                                hyperlink.*.template = @constCast(arg);
+                                            } else {
+                                                hyperlink.*.href = @constCast(arg);
+                                                if (args.len < 2) {
+                                                    hyperlink.*.template = hyperlink.*.href;
+                                                }
                                             }
                                         }
-                                    } else {
-                                        if (hyperlink.href) |_| {
-                                            hyperlink.*.template = @constCast(arg);
-                                        } else {
-                                            hyperlink.*.href = @constCast(arg);
-                                            if (args.len < 2) {
-                                                hyperlink.*.template = hyperlink.*.href;
-                                            }
+                                    },
+                                    .Struct => {
+                                        if (@TypeOf(arg) == Node) {
+                                            tmp.children.append(arg) catch |e| switch (e) {
+                                                else => @panic("failed to append children"),
+                                            };
                                         }
-                                    }
-                                } else if (pointer.child == u8) {
-                                    if (hyperlink.href) |_| {
-                                        hyperlink.*.template = @constCast(arg);
-                                    } else {
-                                        hyperlink.*.href = @constCast(arg);
-                                        if (args.len < 2) {
-                                            hyperlink.*.template = hyperlink.*.href;
-                                        }
-                                    }
+                                    },
+                                    else => {},
                                 }
-                            },
-                            .Struct => {
-                                if (@TypeOf(arg) == Node) {
-                                    tmp.children.append(arg) catch |e| switch (e) {
-                                        else => @panic("failed to append children"),
-                                    };
-                                }
-                            },
-                            else => {},
+                            }
                         }
-                    }
+                    },
+                    else => unreachable,
                 }
             },
             .link => |*link| {
-                const metaType = switch (@typeInfo(@TypeOf(args))) {
-                    .Struct => |s| s,
-                    else => |e| e,
-                };
-                if (metaType.is_tuple) {
-                    inline for (args) |arg| {
-                        switch (@typeInfo(@TypeOf(arg))) {
-                            .Pointer => |pointer| {
-                                if (@typeInfo(pointer.child) == .Array) {
-                                    if (link.rel) |_| {
-                                        link.*.href = @constCast(arg);
-                                    } else {
-                                        link.*.rel = @constCast(arg);
-                                    }
-                                } else if (pointer.child == u8) {
-                                    if (link.rel) |_| {
-                                        link.*.href = @constCast(arg);
-                                    } else {
-                                        link.*.rel = @constCast(arg);
-                                    }
+                switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| {
+                        if (s.is_tuple) {
+                            inline for (args) |arg| {
+                                switch (@typeInfo(@TypeOf(arg))) {
+                                    .Pointer => |pointer| {
+                                        if (@typeInfo(pointer.child) == .Array) {
+                                            if (link.rel) |_| {
+                                                link.*.href = @constCast(arg);
+                                            } else {
+                                                link.*.rel = @constCast(arg);
+                                            }
+                                        } else if (pointer.child == u8) {
+                                            if (link.rel) |_| {
+                                                link.*.href = @constCast(arg);
+                                            } else {
+                                                link.*.rel = @constCast(arg);
+                                            }
+                                        }
+                                    },
+                                    else => {},
                                 }
-                            },
-                            else => {},
+                            }
                         }
-                    }
+                    },
+                    else => unreachable,
                 }
             },
             .meta => |*meta| {
-                const s = switch (@typeInfo(@TypeOf(args))) {
-                    .Struct => |s| s,
-                    else => |e| e,
-                };
-                if (s.is_tuple) {
-                    if (args.len < 2)
-                        @panic("meta element must have 2 arguments.");
-                    inline for (args, 0..) |arg, i| {
-                        switch (@typeInfo(@TypeOf(arg))) {
-                            .EnumLiteral => {
-                                const metaType = @as(elem.Meta.MetaType, arg);
-                                meta.*.meta_type = metaType;
-                                switch (metaType) {
-                                    .charset => meta.*.charset = @constCast(args[i + 1]),
-                                    .property => {
-                                        if (meta.property) |_| {
-                                            meta.*.content = @constCast(args[i + 1]);
-                                        } else {
-                                            meta.*.property = @constCast(args[i + 1]);
+                switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| {
+                        if (s.is_tuple) {
+                            if (args.len < 2)
+                                @panic("meta element must have 2 arguments.");
+                            inline for (args, 0..) |arg, i| {
+                                switch (@typeInfo(@TypeOf(arg))) {
+                                    .EnumLiteral => {
+                                        const metaType = @as(elem.Meta.MetaType, arg);
+                                        meta.*.meta_type = metaType;
+                                        switch (metaType) {
+                                            .charset => meta.*.charset = @constCast(args[i + 1]),
+                                            .property => {
+                                                if (meta.property) |_| {
+                                                    meta.*.content = @constCast(args[i + 1]);
+                                                } else {
+                                                    meta.*.property = @constCast(args[i + 1]);
+                                                }
+                                            },
+                                            else => meta.*.content = @constCast(args[i + 1]),
                                         }
                                     },
-                                    else => meta.*.content = @constCast(args[i + 1]),
+                                    else => {},
                                 }
-                            },
-                            else => {},
+                            }
                         }
-                    }
+                    },
+                    else => unreachable,
                 }
             },
             .custom => |*custom| {
-                const metaType = switch (@typeInfo(@TypeOf(args))) {
-                    .Struct => |s| s,
-                    else => |e| e,
-                };
-                if (metaType.is_tuple) {
-                    inline for (args, 0..) |arg, i| {
-                        switch (@typeInfo(@TypeOf(arg))) {
-                            .Pointer => |pointer| {
-                                if (@typeInfo(pointer.child) == .Array) {
-                                    if (i < args.len - 1) {
-                                        // stringとみなす
-                                        custom.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
-                                    } else {
-                                        // 続くargがなければ非フォーマット文字列
-                                        custom.*.template = @constCast(arg);
-                                    }
-                                } else if (pointer.child == u8) {
-                                    custom.*.template = @constCast(arg);
+                switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| {
+                        if (s.is_tuple) {
+                            inline for (args, 0..) |arg, i| {
+                                switch (@typeInfo(@TypeOf(arg))) {
+                                    .Pointer => |pointer| {
+                                        if (@typeInfo(pointer.child) == .Array) {
+                                            if (i < args.len - 1) {
+                                                // stringとみなす
+                                                custom.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                            } else {
+                                                // 続くargがなければ非フォーマット文字列
+                                                custom.*.template = @constCast(arg);
+                                            }
+                                        } else if (pointer.child == u8) {
+                                            custom.*.template = @constCast(arg);
+                                        }
+                                    },
+                                    .Struct => {
+                                        if (@TypeOf(arg) == Node) {
+                                            tmp.children.append(arg) catch |e| switch (e) {
+                                                else => @panic("failed to append children"),
+                                            };
+                                        }
+                                    },
+                                    else => {},
                                 }
-                            },
-                            .Struct => {
-                                if (@TypeOf(arg) == Node) {
-                                    tmp.children.append(arg) catch |e| switch (e) {
-                                        else => @panic("failed to append children"),
-                                    };
-                                }
-                                // else if (@TypeOf(arg) == Element) {
-                                //         const node = Node{
-                                //             .elem = Element{ .plane = arg },
-                                //             .children = std.ArrayList(Node).init(alloc),
-                                //         };
-                                //         tmp.children.append(node) catch |e| switch (e) {
-                                //             else => @panic("failed to append children"),
-                                //         };
-                                //     }
-                            },
-                            else => {},
+                            }
                         }
-                    }
-                } else if (metaType == .Array or metaType == .Pointer) {
-                    // 単なる文字列と仮定
-                    custom.*.template = @constCast(args);
+                    },
+                    else => |e| {
+                        if (e == .Array or e == .Pointer) {
+                            // 単なる文字列と仮定
+                            custom.*.template = @constCast(args);
+                        }
+                    },
                 }
             },
         }
