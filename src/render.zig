@@ -197,6 +197,7 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
             try writer.print(">", .{});
         },
         .custom => {
+            std.debug.print("id: {s}\n", .{node.id.?});
             if (node.id) |id| {
                 const fileName = try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/webcomponents/{s}.js", .{id});
                 std.fs.cwd().access(fileName, .{}) catch {
