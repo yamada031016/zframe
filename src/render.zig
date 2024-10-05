@@ -198,25 +198,17 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
         },
         .custom => {
             if (node.id) |id| {
-                const fileName = try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/webcomponents/{s}.js", .{id});
-                std.debug.print("ここ!", .{});
+                const fileName = try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/html/webcomponents/{s}.js", .{id});
                 std.fs.cwd().access(fileName, .{}) catch recover: {
                     const output = try std.fs.cwd().createFile(fileName, .{});
                     try generateWebComponents(node, output.writer());
                     break :recover;
                 };
-                std.debug.print("fuga", .{});
 
                 std.fs.cwd().access(fileName, .{}) catch {
-                    std.debug.print("hoge", .{});
                     _ = try std.fs.cwd().createFile(".zig-cache/head.html", .{});
                 };
-                std.debug.print("before", .{});
                 var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{});
-                std.debug.print("after", .{});
-                // var head_output = std.fs.cwd().openFile(".zig-cache/head.html", .{}) catch recover: {
-                //     break :recover std.fs.cwd().createFile(".zig-cache/head.html", .{}) catch unreachable;
-                // };
                 var head_writer = head_output.writer();
                 std.debug.print("id: {s}\n", .{id});
                 try head_writer.print("\n<head>", .{});
