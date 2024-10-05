@@ -13,6 +13,7 @@ fn index() node.Node {
 
     return div.setClass("text-[#25332a] ").init(.{
         Head("zframe - Zig Web Frontend Framework", .{}),
+        resultPreview(),
         // img.init(.{.src="hoge", .alt="Test image", .width=100, .height=200}),
         div.setClass("text-center mt-32").init(.{
             h1.init(.{"zframe -- Web Frontend Framework"}).setClass("text-5xl text-[#F0544F] font-black"),
