@@ -75,7 +75,8 @@ pub fn render(id: std.builtin.SourceLocation, args: Node) !void {
         _ = try std.fs.File.copyRangeAll(tmp, 0, html, offset, tmp_len);
         return;
     };
-    try head_file.writer().writeAll("</head>");
+    // try head_file.writer().writeAll("</head>");
+    head_file.pwriteAll("</head>", head_file.getEndPos());
     // tmp.htmlはheadタグの内容を保持
     // bodyタグを保持するhtmlをtmp.htmlに追記
     // htmlの先頭にDOCTYPEを記述し、その分のoffsetを開けてtmp.htmlの内容をhtmlにコピーする
@@ -206,12 +207,14 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                 };
 
                 std.fs.cwd().access(fileName, .{}) catch {
-                    _ = try std.fs.cwd().createFile(".zig-cache/head.html", .{});
+                    const head = try std.fs.cwd().createFile(".zig-cache/head.html", .{});
+                    const head_writer = head.writer();
+                    try head_writer.print("\n<head>", .{});
                 };
-                var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .truncate = false });
-                var head_writer = head_output.writer();
-                try head_writer.print("\n<head>", .{});
-                try head_writer.print("<script type='module'src='{s}'defer></script>", .{std.fs.path.basename(fileName)});
+                var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
+                head_output.pwriteAll("<script type='module'src='{s}'defer></script>", head_output.getEndPos());
+                // var head_writer = head_output.writer();
+                // try head_writer.print("<script type='module'src='{s}'defer></script>", .{std.fs.path.basename(fileName)});
                 try writer.print("<div id={s}></div>", .{id});
             }
         },
