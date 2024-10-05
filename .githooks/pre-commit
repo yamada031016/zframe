@@ -6,6 +6,7 @@ zig build
     echo -e "\x1B[1;92m(zframe)build success.\x1B[m"
   else
     echo -e "\x1B[1;91m(zframe)build failed.\x1B[m"
+    exit 1
   fi
 
 # test for building each example.
@@ -17,6 +18,7 @@ for dir in `find examples/* -maxdepth 0 -type d`; do
     echo -e "\x1B[1;92m($dir)build success.\x1B[m"
   else
     echo -e "\x1B[1;91m($dir)build failed.\x1B[m"
+    exit 1
   fi
   cd ../.. # back to project-root
 done

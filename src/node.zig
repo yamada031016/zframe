@@ -219,7 +219,50 @@ pub const Node = struct {
                     }
                 }
             },
-            .custom => |*custom| {},
+            .custom => |*custom| {
+                const metaType = switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| s,
+                    else => |e| e,
+                };
+                if (metaType.is_tuple) {
+                    inline for (args, 0..) |arg, i| {
+                        switch (@typeInfo(@TypeOf(arg))) {
+                            .Pointer => |pointer| {
+                                if (@typeInfo(pointer.child) == .Array) {
+                                    if (i < args.len - 1) {
+                                        // stringとみなす
+                                        custom.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                    } else {
+                                        // 続くargがなければ非フォーマット文字列
+                                        custom.*.template = @constCast(arg);
+                                    }
+                                } else if (pointer.child == u8) {
+                                    custom.*.template = @constCast(arg);
+                                }
+                            },
+                            .Struct => {
+                                if (@TypeOf(arg) == Node) {
+                                    tmp.children.append(arg) catch |e| switch (e) {
+                                        else => @panic("failed to append children"),
+                                    };
+                                } else if (@TypeOf(arg) == Element) {
+                                    const node = Node{
+                                        .elem = Element{ .plane = arg },
+                                        .children = std.ArrayList(Node).init(alloc),
+                                    };
+                                    tmp.children.append(node) catch |e| switch (e) {
+                                        else => @panic("failed to append children"),
+                                    };
+                                }
+                            },
+                            else => {},
+                        }
+                    }
+                } else if (metaType == .Array or metaType == .Pointer) {
+                    // 単なる文字列と仮定
+                    custom.*.template = @constCast(args);
+                }
+            },
         }
         return tmp;
     }
