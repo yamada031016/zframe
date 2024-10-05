@@ -12,7 +12,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     const zframe_mod = b.addModule("zframe", .{
-        .root_source_file = b.path("src/zframe.zig"),
+        .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = .ReleaseFast,
     });

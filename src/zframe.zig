@@ -1,4 +1,4 @@
-//! SSG-ZIG: Zig Web Frontend Framework
+//! zframe: Zig Web Frontend Framework
 
 /// This module provide interface for rendering html.
 pub const render = @import("render.zig");
