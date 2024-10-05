@@ -212,9 +212,8 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                     try head_writer.print("\n<head>", .{});
                 };
                 var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
-                try head_output.pwriteAll("<script type='module'src='{s}'defer></script>", try head_output.getEndPos());
-                // var head_writer = head_output.writer();
-                // try head_writer.print("<script type='module'src='{s}'defer></script>", .{std.fs.path.basename(fileName)});
+                const wb_loader = try std.fmt.allocPrint(std.heap.page_allocator, "<script type='module'src='{s}'defer></script>", .{id});
+                try head_output.pwriteAll(wb_loader, try head_output.getEndPos());
                 try writer.print("<div id={s}></div>", .{id});
             }
         },
