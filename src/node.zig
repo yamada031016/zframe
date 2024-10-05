@@ -219,6 +219,7 @@ pub const Node = struct {
                     }
                 }
             },
+            .custom => |*custom| {},
         }
         return tmp;
     }
@@ -250,7 +251,6 @@ pub const Node = struct {
     }
 
     pub fn addIterateChild(self: *Node, child: Node) void {
-        // std.debug.print("node: {any}\n", .{self});
         self.children.append(child) catch |e| switch (e) {
             else => @panic("failed to append children"),
         };

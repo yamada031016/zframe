@@ -33,7 +33,7 @@ const ElementType = enum {
     hyperlink,
     link,
     meta,
-    // custom,
+    custom,
 };
 
 /// This union provides abstract interface for users
@@ -43,7 +43,7 @@ pub const Element = union(ElementType) {
     hyperlink: HyperLink,
     link: Link,
     meta: Meta,
-    // custom: Custom,
+    custom: Custom,
 };
 
 /// This structure represents Generic HTML Element such as h1, p, and so on.
@@ -121,6 +121,10 @@ pub const Link = struct {
 };
 
 /// This structure represents Web Components's custom element.
+/// usecase
+/// const custom = createNode(.custom);
+/// const custom_button = custom.setId("custom-button");
+/// custom_button.init(.{})
 pub const Custom = struct {
     const Self = @This();
 

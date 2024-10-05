@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# test for building each example.
+
+for dir in `find examples/* -maxdepth 0 -type d`; do
+  cd $dir
+  rm -rf .zig-cache
+  zig build run
+  if [ $? -eq 0 ]; then
+    echo -e "\x1B[1;92mbuild success at $dir.\x1B[m"
+  else
+    echo -e "\x1B[1;91mbuild failed at $dir.\x1B[m"
+  fi
+  cd ../.. # back to project-root
+done
