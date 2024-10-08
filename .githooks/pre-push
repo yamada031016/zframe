@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# execute all tests
+zig build test
+
 # test for building zframe.
 zig build
   if [ $? -eq 0 ]; then
