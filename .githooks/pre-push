@@ -9,3 +9,15 @@ zig build
     exit 1
   fi
 
+# test for building each test/*.
+for dir in `find test/* -maxdepth 0 -type d`; do
+  cd $dir
+  rm -rf .zig-cache
+  zig build run
+  if [ $? -eq 0 ]; then
+    echo -e "\x1B[1;92m($dir) build success.\x1B[m"
+  else
+    echo -e "\x1B[1;91m($dir) build failed.\x1B[m"
+  fi
+  cd ../.. # back to project-root
+done
