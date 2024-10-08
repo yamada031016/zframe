@@ -1,0 +1,3 @@
+[submodule "zframe-cli"]
+	path = zframe-cli
+	url = git@github.com:yamada031016/zframe-dev-utils.git

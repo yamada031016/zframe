@@ -3,6 +3,7 @@ const std = @import("std");
 const elem = @import("element.zig");
 const Element = elem.Element;
 const Tag = @import("html.zig").Tag;
+const Handler = @import("handler.zig").Handler;
 
 /// This function returns Node structures which contains proper Element union.
 pub fn createNode(comptime tagName: Tag) Node {
@@ -26,12 +27,14 @@ pub const Node = struct {
 
     class: ?[]u8 = null,
     id: ?[]u8 = null,
+    handler: ?Handler = null,
 
     pub fn init(self: *const Node, args: anytype) Node {
         var tmp = Node{
             .elem = self.elem,
             .class = self.class,
             .id = self.id,
+            .handler = self.handler,
             .children = std.ArrayList(Node).init(alloc),
         };
         // init function works differently for different types of elements.
@@ -262,6 +265,12 @@ pub const Node = struct {
     pub fn setId(self: *const Node, comptime id_name: []const u8) Node {
         var tmp = self.*;
         tmp.id = @constCast(id_name);
+        return tmp;
+    }
+
+    pub fn addHandler(self: *const Node, comptime handler: Handler) Node {
+        var tmp = self.*;
+        tmp.handler = handler;
         return tmp;
     }
 

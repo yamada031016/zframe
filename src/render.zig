@@ -218,6 +218,12 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
             }
         },
     }
+
+    if (node.handler) |handler| {
+        var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
+        const js = try handler.toJS();
+        try head_output.pwriteAll(js, try head_output.getEndPos());
+    }
 }
 
 fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
