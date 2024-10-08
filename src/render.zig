@@ -42,10 +42,10 @@ fn generateHtmlFile(id: std.builtin.SourceLocation) !std.fs.File {
     return RenderError.InvalidPageFilePath;
 }
 
-pub fn render(id: std.builtin.SourceLocation, args: Node) !void {
-    const html = generateHtmlFile(id) catch |e| switch (e) {
+pub fn render(page_name: []const u8, args: Node) !void {
+    const html = generateHtmlFile(page_name) catch |e| switch (e) {
         RenderError.InvalidPageFilePath => {
-            std.debug.print("invalid file path: {s}. move below src/pages/**", .{id.file});
+            std.debug.print("invalid file path: {s}. move below src/pages/**", .{page_name});
             return;
         },
         else => return,
