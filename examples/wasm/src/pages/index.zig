@@ -68,5 +68,5 @@ fn card(title: []const u8, description: []const u8) node.Node {
 
 const Layout = @import("components").layout.Layout;
 pub fn main() !void {
-    try z.render.render(@src(), Layout(index()));
+    try z.render.render(@src().file, Layout(index()));
 }

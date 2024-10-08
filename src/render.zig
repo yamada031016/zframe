@@ -10,20 +10,20 @@ const RenderError = error{
 
 var html_output_path: []u8 = @constCast("zig-out/html/");
 
-fn generateHtmlFile(id: std.builtin.SourceLocation) !std.fs.File {
+fn generateHtmlFile(page_name: []const u8) !std.fs.File {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
-    const src = std.fs.path.dirname(id.file) orelse return RenderError.InvalidPageFilePath; // expect "src/pages"
+    const src = std.fs.path.dirname(page_name) orelse return RenderError.InvalidPageFilePath; // expect "src/pages"
     const parent = std.fs.path.basename(src); // parent dir of the page component file. ex) pages/, about/
 
     if (std.mem.eql(u8, parent, "pages")) {
         // single file routing.
         // ex) pages/index.zig, pages/about.zig.
         if (std.fs.path.dirname(src)) |_| {
-            const url = std.fs.path.stem(std.fs.path.basename(id.file));
+            const url = std.fs.path.stem(std.fs.path.basename(page_name));
             return try std.fs.cwd().createFile(try std.fmt.allocPrintZ(allocator, "zig-out/html/{s}.html", .{url}), .{ .read = true });
         }
-    } else if (!std.mem.eql(u8, parent, "src") and std.mem.eql(u8, std.fs.path.basename(id.file), "page.zig")) {
+    } else if (!std.mem.eql(u8, parent, "src") and std.mem.eql(u8, std.fs.path.basename(page_name), "page.zig")) {
         // multiple file routing.
         // ex) pages/about/page.zig, pages/about/contact/page.zig
         const url = parent;
