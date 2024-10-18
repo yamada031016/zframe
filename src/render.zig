@@ -135,6 +135,11 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
 
                         try writer.print("</{s}>", .{tag});
                     }
+                    if (node.handler) |handler| {
+                        var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
+                        const js = try handler.toJS();
+                        try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script>{s}</script>", .{js}), try head_output.getEndPos());
+                    }
                 },
             }
         },
@@ -218,12 +223,6 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
             }
         },
     }
-
-    if (node.handler) |handler| {
-        var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
-        const js = try handler.toJS();
-        try head_output.pwriteAll(js, try head_output.getEndPos());
-    }
 }
 
 fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
@@ -236,7 +235,11 @@ fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
         for (child.children.items) |c| {
             try writer.writeAll(try generateJsElement(c));
         }
-        try writer.print("shadowRoot.appendChild({s}).cloneNode(true)", .{child.elem.getTagName()});
+        try writer.print("shadowRoot.appendChild({s}).cloneNode(true);", .{child.elem.getTagName()});
+    }
+    if (node.handler) |handler| {
+        const js = try handler.toJS();
+        try writer.writeAll(try std.fmt.allocPrint(std.heap.page_allocator, "this.addEventListener('click',()=>{{{s}}})", .{js}));
     }
     try writer.writeAll("}},{extends:'div'})");
 }

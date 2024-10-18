@@ -15,6 +15,7 @@ fn index() node.Node {
     return div.setClass("text-[#25332a] ").init(.{
         Head("zframe - Zig Web Frontend Framework", .{}),
         // img.init(.{.src="hoge", .alt="Test image", .width=100, .height=200}),
+        resultPreview(),
         div.setClass("text-center mt-32").init(.{
             h1.init(.{"zframe -- Web Frontend Framework"}).setClass("text-5xl text-[#F0544F] font-black"),
             p.init(.{
@@ -67,8 +68,17 @@ fn card(title: []const u8, description: []const u8) node.Node {
     });
 }
 
+fn resultPreview() node.Node {
+    const custom = node.createNode(.custom);
+    const result_preview = custom.setId("result-preview");
+    const h2 = node.createNode(.h2);
+    const handler = Handler.init("one.wasm");
+    return result_preview.init(.{
+        h2.setClass("text-xl text-red-500").init("Test"),
+    }).addHandler(handler);
+}
+
 const Layout = @import("components").layout.Layout;
 pub fn main() !void {
-    const handler = Handler.init("one.wasm");
-    try z.render.render(@src().file, Layout(index().addHandler(handler)));
+    try z.render.render(@src().file, Layout(index()));
 }

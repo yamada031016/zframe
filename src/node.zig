@@ -268,7 +268,7 @@ pub const Node = struct {
         return tmp;
     }
 
-    pub fn addHandler(self: *const Node, comptime handler: Handler) Node {
+    pub fn addHandler(self: *const Node, handler: Handler) Node {
         var tmp = self.*;
         tmp.handler = handler;
         return tmp;

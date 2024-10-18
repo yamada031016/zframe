@@ -40,7 +40,6 @@ pub fn build(b: *std.Build) !void {
     // when generating html file, also generate unique hash value (from zig file metadata ?).
     // only in case of hash values are changed, delete old html files.
     cwd.makeDir("zig-out") catch {};
-    cwd.makeDir("zig-out/webcomponents") catch {};
     cwd.makeDir("zig-out/html") catch {
         var output_dir = try cwd.openDir("zig-out/html", .{ .iterate = true });
         defer output_dir.close();
@@ -61,6 +60,7 @@ pub fn build(b: *std.Build) !void {
             }
         }
     };
+    cwd.makeDir("zig-out/html/webcomponents") catch {};
     var html_dir = try cwd.openDir("zig-out/html", .{ .iterate = true });
     try html_dir.chmod(0o777);
     defer html_dir.close();
