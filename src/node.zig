@@ -12,6 +12,7 @@ pub fn createNode(comptime tagName: Tag) Node {
     const node = Node{
         .elem = elem.createElement(tagName),
         .children = std.ArrayList(Node).init(allocator),
+        .handlers = std.StringHashMap(Handler).init(std.heap.page_allocator),
     };
     return node;
 }
@@ -24,17 +25,16 @@ pub const Node = struct {
     const alloc = gpa.allocator();
     elem: Element,
     children: std.ArrayList(Node),
-
+    handlers: std.StringHashMap(Handler),
     class: ?[]u8 = null,
     id: ?[]u8 = null,
-    handler: ?Handler = null,
 
     pub fn init(self: *const Node, args: anytype) Node {
         var tmp = Node{
             .elem = self.elem,
             .class = self.class,
             .id = self.id,
-            .handler = self.handler,
+            .handlers = std.StringHashMap(Handler).init(std.heap.page_allocator),
             .children = std.ArrayList(Node).init(alloc),
         };
         // init function works differently for different types of elements.
@@ -268,9 +268,11 @@ pub const Node = struct {
         return tmp;
     }
 
-    pub fn addHandler(self: *const Node, handler: Handler) Node {
+    pub fn addHandler(self: *const Node, eventName: []const u8, handler: Handler) Node {
         var tmp = self.*;
-        tmp.handler = handler;
+        tmp.handlers.put(eventName, handler) catch |e| {
+            std.debug.panic("{s}: failed to put {s} in event handler.", .{ @errorName(e), eventName });
+        };
         return tmp;
     }
 

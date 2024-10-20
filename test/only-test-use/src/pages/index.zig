@@ -69,6 +69,15 @@ fn card(title: []const u8, description: []const u8) node.Node {
 
 const Layout = @import("components").layout.Layout;
 pub fn main() !void {
-    const handler = Handler.init("one.wasm");
-    try z.render.render(@src().file, Layout(index().addHandler(handler)));
+    const handler = Handler.init(
+        .webassembly,
+        .{
+            .filename = "one.wasm",
+            .then = .{
+                .filename = "alert.js",
+                .func = "test",
+            },
+        },
+    );
+    try z.render.render(@src().file, Layout(index().addHandler("webassembly", handler)));
 }

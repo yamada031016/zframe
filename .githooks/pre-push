@@ -2,6 +2,12 @@
 
 # execute all tests
 zig build test
+  if [ $? -eq 0 ]; then
+    echo -e "\x1B[1;92m(zframe) test success.\x1B[m"
+  else
+    echo -e "\x1B[1;91m(zframe) test failed.\x1B[m"
+    exit 1
+  fi
 
 # test for building zframe.
 zig build

@@ -72,10 +72,10 @@ fn resultPreview() node.Node {
     const custom = node.createNode(.custom);
     const result_preview = custom.setId("result-preview");
     const h2 = node.createNode(.h2);
-    const handler = Handler.init("one.wasm");
+    const handler = Handler.init(.webassembly, "one.wasm");
     return result_preview.init(.{
         h2.setClass("text-xl text-red-500").init("Test"),
-    }).addHandler(handler);
+    }).addHandler("webassembly", handler);
 }
 
 const Layout = @import("components").layout.Layout;
