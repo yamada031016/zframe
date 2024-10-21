@@ -1,7 +1,11 @@
-# ssg-zig
-zig static site generator.
+# zFrame
+Web frontend framework written in Zig.
+zFrame is 
 
 ## Install
 ```sh
-sudo zig fetch --save=ssg-zig github.com/yamada031016/ssg-zig/archive/refs/heads/main.tar.gz
+git clone https://github.com/yamada031016/zframe
+# build cli tool
+cd zframe/zframe-cli
+zig build -Doptimize=ReleaseFast
 ```
