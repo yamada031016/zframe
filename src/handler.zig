@@ -9,26 +9,20 @@ pub const Handler = union(HandlerType) {
     pub fn init(comptime target: HandlerType, comptime contents: anytype) Handler {
         switch (target) {
             .webassembly => {
-                // switch (@typeInfo(@TypeOf(contents))) {
-                //     .Struct => |s| {
-                //         if (!s.is_tuple) {
                 return Handler{
                     .webassembly = WasmHandler.init(contents),
                 };
-                //         }
-                //         unreachable;
-                //     },
-                //     else => unreachable,
-                // }
             },
             .javascript => {
                 switch (@typeInfo(@TypeOf(contents))) {
                     .Struct => |s| {
                         if (!s.is_tuple) {
-                            return Handler{ .javascript = JsHandler{
-                                .filename = @field(contents, "filename"),
-                                .func = @field(contents, "func"),
-                            } };
+                            return Handler{
+                                .javascript = JsHandler{
+                                    .filename = @field(contents, "filename"),
+                                    .func = @field(contents, "func"),
+                                },
+                            };
                         }
                         unreachable;
                     },
@@ -93,7 +87,6 @@ pub const WasmHandler = struct {
             std.heap.page_allocator,
             "const env={{memory:new WebAssembly.Memory({{initial:{},maximum:{}}})}};var memory=env.memory;WebAssembly.instantiateStreaming(fetch('api/{s}'),{{env}}).then({s})",
             .{ self.env.limits.min, self.env.limits.max, self.filename, then },
-            // "const env={{memory:new WebAssembly.Memory({{initial:{},maximum:{}}})}};var memory=env.memory;WebAssembly.instantiateStreaming(fetch('api/{s}'),{{env}}).then(obj=>{{alert(obj.instance.exports.one())}})",
         );
         return js;
     }
