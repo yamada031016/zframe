@@ -79,6 +79,21 @@ pub const Element = union(ElementType) {
 /// This structure represents Generic HTML Element such as h1, p, and so on.
 pub const PlaneElement = struct {
     const Self = @This();
+    pub const attributes = [_][]const u8{
+        "accesskey",
+        "contenteditable",
+        "dir",
+        "draggable",
+        "hidden",
+        "itemprop",
+        "lang",
+        "role",
+        "slot",
+        "spellcheck",
+        "style",
+        "title",
+        "translate",
+    };
 
     tag: Tag,
     template: ?[]u8 = null,

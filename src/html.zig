@@ -61,6 +61,7 @@ pub const Tag = enum {
             .area=>"area", .audio=>"audio", .map=>"map", .track=>"track", .video=>"video",
             .svg=>"svg", .math=>"math",
             .canvas=>"canvas", .noscript=>"noscript", .script=>"script",
+            .del=>"del", .ins=>"ins",
             .slot=>"slot", .template=>"template",
         };
     }

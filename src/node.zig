@@ -37,7 +37,6 @@ pub const Node = struct {
             .handlers = std.StringHashMap(Handler).init(std.heap.page_allocator),
             .children = std.ArrayList(Node).init(alloc),
         };
-        // init function works differently for different types of elements.
         switch (tmp.elem) {
             .plane => |*plane| {
                 switch (@typeInfo(@TypeOf(args))) {
@@ -49,7 +48,7 @@ pub const Node = struct {
                                         if (@typeInfo(pointer.child) == .Array) {
                                             if (i < args.len - 1) {
                                                 // stringとみなす
-                                                plane.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                                plane.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
                                             } else {
                                                 // 続くargがなければ非フォーマット文字列
                                                 plane.*.template = @constCast(arg);
@@ -65,14 +64,15 @@ pub const Node = struct {
                                             };
                                         }
                                     },
-                                    else => {},
+                                    .Void => {},
+                                    else => self.fatal(NodeError.invalidArgs, args),
                                 }
                             }
                         }
                     },
                     else => |e| {
                         if (e == .Array or e == .Pointer) {
-                            // 単なる文字列と仮定
+                            // expect args as string
                             plane.*.template = @constCast(args);
                         }
                     },
@@ -92,12 +92,12 @@ pub const Node = struct {
                                         }
                                     }
                                 } else {
-                                    std.debug.print("invalid argument:{any}\n", .{args});
+                                    self.fatal(NodeError.invalidArgs, args);
                                 }
                             }
                         }
                     },
-                    else => unreachable,
+                    else => self.fatal(NodeError.invalidArgs, args),
                 }
             },
             .hyperlink => |*hyperlink| {
@@ -110,9 +110,9 @@ pub const Node = struct {
                                         if (@typeInfo(pointer.child) == .Array) {
                                             if (i < args.len - 1 and @typeInfo(@TypeOf(args[i + 1])) == .Struct) {
                                                 if (hyperlink.href) |_| {
-                                                    hyperlink.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                                    hyperlink.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
                                                 } else {
-                                                    hyperlink.*.href = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                                    hyperlink.*.href = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("failed to format hyper reference string."));
                                                     if (args.len < 3) {
                                                         hyperlink.*.template = hyperlink.*.href;
                                                     }
@@ -145,12 +145,12 @@ pub const Node = struct {
                                             };
                                         }
                                     },
-                                    else => {},
+                                    else => self.fatal(NodeError.invalidArgs, args),
                                 }
                             }
                         }
                     },
-                    else => unreachable,
+                    else => self.fatal(NodeError.invalidArgs, args),
                 }
             },
             .link => |*link| {
@@ -174,12 +174,12 @@ pub const Node = struct {
                                             }
                                         }
                                     },
-                                    else => {},
+                                    else => self.fatal(NodeError.invalidArgs, args),
                                 }
                             }
                         }
                     },
-                    else => unreachable,
+                    else => self.fatal(NodeError.invalidArgs, args),
                 }
             },
             .meta => |*meta| {
@@ -205,12 +205,13 @@ pub const Node = struct {
                                             else => meta.*.content = @constCast(args[i + 1]),
                                         }
                                     },
-                                    else => {},
+                                    .Pointer => {},
+                                    else => self.fatal(NodeError.invalidArgs, args),
                                 }
                             }
                         }
                     },
-                    else => unreachable,
+                    else => self.fatal(NodeError.invalidArgs, args),
                 }
             },
             .custom => |*custom| {
@@ -239,7 +240,7 @@ pub const Node = struct {
                                             };
                                         }
                                     },
-                                    else => {},
+                                    else => self.fatal(NodeError.invalidArgs, args),
                                 }
                             }
                         }
@@ -300,5 +301,14 @@ pub const Node = struct {
         _ = self;
         const deinit_status = gpa.deinit();
         if (deinit_status == .leak) std.testing.expect(false) catch @panic("Memory leaked");
+    }
+
+    const NodeError = error{
+        invalidArgs,
+    };
+
+    fn fatal(self: *const Node, err: NodeError, args: anytype) noreturn {
+        std.log.err("{any}\n{any}\n@{any}\n", .{ err, args, self.elem });
+        std.process.exit(1);
     }
 };
