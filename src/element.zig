@@ -21,9 +21,11 @@ pub fn createElement(comptime tagName: Tag) Element {
             return Element{ .custom = Custom{} };
         },
         else => {
-            return Element{ .plane = PlaneElement{
-                .tag = tagName,
-            } };
+            return Element{
+                .plane = PlaneElement{
+                    .tag = tagName,
+                },
+            };
         },
     }
 }
