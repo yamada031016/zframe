@@ -161,6 +161,19 @@ pub const Node = struct {
                                     else => self.fatal(NodeError.invalidArgs, args),
                                 }
                             }
+                        } else {
+                            inline for (@field(@TypeOf(hyperlink.*), "attributes")) |attr| {
+                                if (@hasField(@TypeOf(args), attr)) {
+                                    if (@field(hyperlink, attr) == null) {
+                                        switch (@typeInfo(@TypeOf(@field(args, attr)))) {
+                                            .Pointer => @field(hyperlink, attr) = @constCast(@field(args, attr)),
+                                            else => @field(hyperlink, attr) = @field(args, attr),
+                                        }
+                                    }
+                                } else {
+                                    self.fatal(NodeError.invalidArgs, args);
+                                }
+                            }
                         }
                     },
                     else => self.fatal(NodeError.invalidArgs, args),
@@ -188,6 +201,19 @@ pub const Node = struct {
                                         }
                                     },
                                     else => self.fatal(NodeError.invalidArgs, args),
+                                }
+                            }
+                        } else {
+                            inline for (@field(@TypeOf(link.*), "attributes")) |attr| {
+                                if (@hasField(@TypeOf(args), attr)) {
+                                    if (@field(link, attr) == null) {
+                                        switch (@typeInfo(@TypeOf(@field(args, attr)))) {
+                                            .Pointer => @field(link, attr) = @constCast(@field(args, attr)),
+                                            else => @field(link, attr) = @field(args, attr),
+                                        }
+                                    }
+                                } else {
+                                    self.fatal(NodeError.invalidArgs, args);
                                 }
                             }
                         }

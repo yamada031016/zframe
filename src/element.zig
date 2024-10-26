@@ -342,7 +342,7 @@ pub const Link = struct {
     referrerpolicy: ?referrerPolicy = null,
     sizes: ?[]const u8 = null,
     title: ?[]const u8 = null,
-    type: ?[]const u8 = null,
+    type: ?typeOfContent = null,
 };
 
 /// This structure represents Web Components's custom element.
