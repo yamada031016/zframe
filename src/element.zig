@@ -94,9 +94,24 @@ pub const PlaneElement = struct {
         "title",
         "translate",
     };
+    const Directionality = enum { leftToRight, RightToLeft, Auto };
 
     tag: Tag,
     template: ?[]u8 = null,
+
+    accesskey: ?u8 = null,
+    contenteditable: ?bool = null,
+    dir: ?Directionality = null,
+    draggable: ?bool = null,
+    hidden: ?bool = null,
+    itemprop: ?[]const u8 = null,
+    lang: ?[]const u8 = null,
+    role: ?[]const u8 = null,
+    slot: ?[]const u8 = null,
+    spellcheck: ?bool = null,
+    style: ?[]const u8 = null,
+    title: ?[]const u8 = null,
+    translate: ?bool = null,
 };
 
 /// This structure represents image tag without any auto-optimization.
@@ -121,15 +136,15 @@ pub const Image = struct {
         "usemap",
     };
 
+    const crossorigin = enum {
+        anonymous,
+        useCredentials,
+    };
+
     const decoding = enum {
         Sync,
         Async,
         Auto,
-    };
-
-    const crossorigin = enum {
-        anonymous,
-        useCredentials,
     };
 
     const fetchPriority = enum {
@@ -158,12 +173,33 @@ pub const Image = struct {
     alt: ?[]u8 = null,
     width: ?u16 = null,
     height: ?u16 = null,
+    attributionsrc: ?[]const u8 = null,
+    crossorigin: ?crossorigin = null,
+    decoding: ?decoding = null,
+    elementtiming: ?[]const u8 = null,
+    fetchpriority: ?fetchPriority = null,
+    ismap: ?bool = null,
+    loading: ?loading = null,
+    referrerpolicy: ?referrerPolicy = null,
+    sizes: ?[]const u8 = null,
+    srcset: ?[]const u8 = null,
+    usemap: ?[]const u8 = null,
 };
 
 /// This structure represents anchor tag without any auto-optimization.
 pub const HyperLink = struct {
     const Self = @This();
-    pub const attributes = [_][]const u8{ "href", "target", "download", "rel", "hreflang", "ping", "referrerpolicy", "type", "attributionsrc" };
+    pub const attributes = [_][]const u8{
+        "href",
+        "target",
+        "download",
+        "rel",
+        "hreflang",
+        "ping",
+        "referrerpolicy",
+        "type",
+        "attributionsrc",
+    };
 
     const referrerPolicy = enum {
         noReferrer,
@@ -185,6 +221,15 @@ pub const HyperLink = struct {
     };
     template: ?[]u8 = null,
     href: ?[]u8 = null,
+
+    target: ?target = null,
+    download: ?[]const u8 = null,
+    rel: ?[]const u8 = null,
+    hreflang: ?[]const u8 = null,
+    ping: ?[]const u8 = null,
+    referrerpolicy: ?referrerPolicy = null,
+    type: ?[]const u8 = null,
+    attributionsrc: ?[]const u8 = null,
 };
 
 /// This structure represents meta tag.
@@ -283,6 +328,21 @@ pub const Link = struct {
 
     rel: ?[]u8 = null,
     href: ?[]u8 = null,
+
+    as: ?[]const u8 = null,
+    blocking: ?[]const u8 = null,
+    crossorigin: ?crossorigin = null,
+    disabled: ?bool = null, // for rel="stylesheet" only
+    fetchpriority: ?fetchPriority = null,
+    hreflang: ?[]const u8 = null,
+    imagesizes: ?[]const u8 = null, // for rel="preload" and as="image" only
+    imagesrcset: ?[]const u8 = null, // for rel="preload" and as="image" only
+    integrity: ?[]const u8 = null, // for rel="stylesheet" or "preload" or "modulepreload"
+    media: ?[]const u8 = null,
+    referrerpolicy: ?referrerPolicy = null,
+    sizes: ?[]const u8 = null,
+    title: ?[]const u8 = null,
+    type: ?[]const u8 = null,
 };
 
 /// This structure represents Web Components's custom element.

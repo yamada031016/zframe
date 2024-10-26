@@ -10,11 +10,14 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
 
-    const zframe = b.createModule(.{ .root_source_file = b.path("../../src/root.zig") });
-    exe.root_module.addImport("zframe", zframe);
+    const zframe = b.dependency("zframe", .{
+        .target = target,
+        .optimize = .ReleaseFast,
+    });
+    exe.root_module.addImport("zframe", zframe.module("zframe"));
 
     const components = b.createModule(.{ .root_source_file = b.path("src/components/components.zig") });
-    components.addImport("zframe", zframe);
+    components.addImport("zframe", zframe.module("zframe"));
     components.addImport("components", components);
     exe.root_module.addImport("components", components);
 
@@ -61,14 +64,14 @@ pub fn build(b: *std.Build) !void {
             }
         }
     };
+    cwd.makeDir("zig-out/html/webcomponents") catch {};
     var html_dir = try cwd.openDir("zig-out/html", .{ .iterate = true });
     try html_dir.chmod(0o777);
     defer html_dir.close();
 
-    try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe }, .{ "components", components } });
+    try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe.module("zframe") }, .{ "components", components } });
 
     try wasm_autobuild(b, allocator, html_dir);
-    try js(allocator, html_dir);
 
     const exe_unit_tests = b.addTest(.{
         .root_source_file = b.path("src/main.zig"),
@@ -165,10 +168,10 @@ fn generate_pages(b: *std.Build, run_step: *std.Build.Step, target: std.Build.Re
     }
 }
 
-fn wasm_autobuild(b: *std.Build, allocator: std.mem.Allocator, output_root_dir: std.fs.Dir) !void {
+fn wasm_autobuild(b: *std.Build, allocator: std.mem.Allocator, root_dir: std.fs.Dir) !void {
     const wasm_dir = try std.fs.cwd().openDir("src/api/", .{ .iterate = true });
     var wasm_walker = try wasm_dir.walk(allocator);
-    output_root_dir.makeDir("api") catch {};
+    root_dir.makeDir("api") catch {};
     while (try wasm_walker.next()) |file| {
         switch (file.kind) {
             .file => {
@@ -184,34 +187,15 @@ fn wasm_autobuild(b: *std.Build, allocator: std.mem.Allocator, output_root_dir: 
                 wasm_api.rdynamic = true;
                 wasm_api.stack_size = std.wasm.page_size;
                 wasm_api.entry = .disabled;
-                wasm_api.initial_memory = std.wasm.page_size * 2;
-                wasm_api.max_memory = std.wasm.page_size * 2;
+                // wasm_api.enable_wasmtime = true;
+                // wasm_api.initial_memory = std.wasm.page_size * 2;
+                // wasm_api.max_memory = std.wasm.page_size * 2;
 
                 const file_name = try std.fmt.allocPrint(std.heap.page_allocator, "{s}.wasm", .{std.fs.path.stem(file.path)});
                 // const wasm_install =b.addInstallArtifact(wasm_api, .{ .dest_dir = .default, .dest_sub_path=file_name});
                 // b.getInstallStep().dependOn(&wasm_install.step);
                 b.getInstallStep().dependOn(&b.addInstallArtifact(wasm_api, .{ .dest_dir = .{ .override = .{ .custom = "html/api" } }, .dest_sub_path = file_name }).step);
                 // b.installBinFile(try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/bin/{s}", .{file_name}), try std.fmt.allocPrint(std.heap.page_allocator, "../html/api/{s}", .{file_name}));
-            },
-            else => {},
-        }
-    }
-}
-
-// TODO: support javascript minify, optimize, ...
-fn js(allocator: std.mem.Allocator, output_root_dir: std.fs.Dir) !void {
-    const js_dir = try std.fs.cwd().openDir("src/js/", .{ .iterate = true });
-    var js_walker = try js_dir.walk(allocator);
-    output_root_dir.makeDir("js") catch {};
-    const output_js_dir = try output_root_dir.openDir("js", .{});
-    while (try js_walker.next()) |file| {
-        switch (file.kind) {
-            .file => {
-                const extension = std.fs.path.extension(file.path);
-                // TODO: support typescript file
-                if (std.mem.eql(u8, extension, ".js")) {
-                    try std.fs.Dir.copyFile(js_dir, file.path, output_js_dir, file.path, .{});
-                }
             },
             else => {},
         }

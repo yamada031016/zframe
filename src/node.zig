@@ -68,6 +68,19 @@ pub const Node = struct {
                                     else => self.fatal(NodeError.invalidArgs, args),
                                 }
                             }
+                        } else {
+                            inline for (@field(@TypeOf(plane.*), "attributes")) |attr| {
+                                if (@hasField(@TypeOf(args), attr)) {
+                                    if (@field(plane, attr) == null) {
+                                        switch (@typeInfo(@TypeOf(@field(args, attr)))) {
+                                            .Pointer => @field(plane, attr) = @constCast(@field(args, attr)),
+                                            else => @field(plane, attr) = @field(args, attr),
+                                        }
+                                    }
+                                } else {
+                                    self.fatal(NodeError.invalidArgs, args);
+                                }
+                            }
                         }
                     },
                     else => |e| {
