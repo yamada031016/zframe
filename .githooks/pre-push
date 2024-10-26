@@ -19,7 +19,7 @@ zig build
   fi
 
 # test for building each test/*.
-for dir in `find test/* -maxdepth 0 -type d`; do
+for dir in `find examples/* -maxdepth 0 -type d`; do
   cd $dir
   rm -rf .zig-cache
   zig build run
