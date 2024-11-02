@@ -190,7 +190,6 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
             for (node.children.items) |child| {
                 try parse(&child, writer);
             }
-
             try writer.print("</a>", .{});
         },
         .link => |*link| {

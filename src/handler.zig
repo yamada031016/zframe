@@ -95,4 +95,25 @@ pub const WasmHandler = struct {
 pub const JsHandler = struct {
     filename: []const u8,
     func: []const u8,
+    pub const events = [_][]const u8{
+        "click",
+        "keydown",
+        "keyup",
+        "mousedown",
+        "mouseup",
+        "mousemove",
+        "mouseover",
+        "mouseout",
+        "onLoad",
+        "onUnload",
+        "focus",
+        "blur",
+        "submit",
+        "reset",
+        "change",
+        "resize",
+        "abort",
+        "error",
+        "load",
+    };
 };

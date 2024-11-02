@@ -298,7 +298,11 @@ pub const Node = struct {
 
     pub fn setClass(self: *const Node, comptime class_name: []const u8) Node {
         var tmp = self.*;
-        tmp.class = @constCast(class_name);
+        if (tmp.class) |class| {
+            tmp.class = std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ class, @constCast(class_name) });
+        } else {
+            tmp.class = @constCast(class_name);
+        }
         return tmp;
     }
 
