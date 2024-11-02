@@ -299,7 +299,7 @@ pub const Node = struct {
     pub fn setClass(self: *const Node, comptime class_name: []const u8) Node {
         var tmp = self.*;
         if (tmp.class) |class| {
-            tmp.class = std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ class, @constCast(class_name) });
+            tmp.class = std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ class, @constCast(class_name) }) catch @panic("failed to format class string");
         } else {
             tmp.class = @constCast(class_name);
         }
