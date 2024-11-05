@@ -235,7 +235,7 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                 if (wasm.handler.then) |then| {
                     try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
                 }
-                const js = try wasm.toJS();
+                const js = try wasm.toJavaScript();
                 try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script>{s}</script>", .{js}), try head_output.getEndPos());
             },
             .javascript => {},

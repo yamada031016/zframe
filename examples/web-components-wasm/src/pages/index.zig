@@ -2,7 +2,7 @@ const z = @import("zframe");
 const c = @import("components");
 const Head = c.head.Head;
 const node = z.node;
-const Handler = z.handler.Handler;
+const h = z.handler;
 
 fn index() node.Node {
     const h1 = node.createNode(.h1);
@@ -72,10 +72,9 @@ fn resultPreview() node.Node {
     const custom = node.createNode(.custom);
     const result_preview = custom.setId("result-preview");
     const h2 = node.createNode(.h2);
-    const handler = Handler.init(.webassembly, "one.wasm");
     return result_preview.init(.{
         h2.setClass("text-xl text-red-500").init("Test"),
-    }).addHandler("webassembly", handler);
+    }).loadWebAssembly("one.wasm", .{});
 }
 
 const Layout = @import("components").layout.Layout;
