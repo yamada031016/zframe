@@ -1,6 +1,8 @@
 const std = @import("std");
+const Layout = @import("components").layout.Layout;
+const zframe = @import("zframe");
 
 // add page rendering way later
 pub fn main() !void {
-    // Layout(.{page}) and so on.
+    try zframe.render.config(Layout);
 }

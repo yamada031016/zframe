@@ -8,7 +8,7 @@ const RenderError = error{
     InvalidPageFilePath,
 };
 
-fn generateHtmlFile(page_name: []const u8) !std.fs.File {
+fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     const src = std.fs.path.dirname(page_name) orelse return RenderError.InvalidPageFilePath; // expect "src/pages"
@@ -20,7 +20,7 @@ fn generateHtmlFile(page_name: []const u8) !std.fs.File {
         // ex) pages/index.zig, pages/about.zig.
         if (std.fs.path.dirname(src)) |_| {
             const url = std.fs.path.stem(std.fs.path.basename(page_name));
-            return try std.fs.cwd().createFile(try std.fmt.allocPrintZ(allocator, "zig-out/html/{s}.html", .{url}), .{ .read = true });
+            return try std.fs.cwd().createFile(try std.fmt.allocPrintZ(allocator, "{s}/{s}.html", .{ dir_name, url }), .{ .read = true });
         }
     } else if (!std.mem.eql(u8, parent, "src") and std.mem.eql(u8, std.fs.path.basename(page_name), "page.zig")) {
         // multiple file routing.
@@ -42,7 +42,7 @@ fn generateHtmlFile(page_name: []const u8) !std.fs.File {
 }
 
 pub fn render(page_name: []const u8, args: Node) !void {
-    const html = generateHtmlFile(page_name) catch |e| switch (e) {
+    const html = generateHtmlFile("zig-out/html", page_name) catch |e| switch (e) {
         RenderError.InvalidPageFilePath => {
             std.debug.panic("invalid file path: {s}. move below src/pages/**", .{page_name});
             return;
@@ -52,17 +52,23 @@ pub fn render(page_name: []const u8, args: Node) !void {
     try html.chmod(0o777);
     defer html.close();
 
-    // var root = applicateLayout: {
-    //     std.fs.cwd().access("src/components/layout.zig", .{}) catch {
-    //         break :applicateLayout n.createNode(.div).setId("root").init(.{args});
-    //     };
-    //     // break :applicateLayout n.createNode(.div).setId("root").init(.{@import("components").layout.Layout(args)});
-    // };
+    const layout: ?std.fs.File = l: {
+        std.fs.cwd().access(".zig-cache/layout.html", .{}) catch break :l null;
+        break :l try std.fs.cwd().openFile(".zig-cache/layout.html", .{});
+    };
     var root = n.createNode(.div).setId("root").init(.{args});
     var writer = html.writer();
 
     try writer.writeAll("\n<body>");
-    try parse(&root, @constCast(&writer));
+    if (layout) |l| {
+        const layoutContents = try l.readToEndAlloc(std.heap.page_allocator, 1024 * 5);
+        const z_pos = std.mem.indexOfPos(u8, layoutContents, 0, "ℤ") orelse 0;
+        try writer.writeAll(layoutContents[0..z_pos]);
+        try parse(&root, @constCast(&writer));
+        try writer.writeAll(layoutContents[z_pos + 3 ..]);
+    } else {
+        try parse(&root, @constCast(&writer));
+    }
     try writer.print("</body>", .{});
 
     const head_file = std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write }) catch {
@@ -111,6 +117,23 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                         }
                         head_output.close();
                     } else {
+                        // try writer.print("<{s}", .{tag});
+                        // const nodeInfo = @typeInfo(@TypeOf(node.*));
+                        // const exactFields = [_][]const u8{ "elem", "children", "handlers", "loadContents" };
+                        // inline for (nodeInfo.Struct.fields) |field| {
+                        //     if (!std.mem.containsAtLeast([]const u8, &exactFields, 1, &[_][]const u8{field.name})) {
+                        //         try writer.print(" {s}={s}", .{ field.name, @field(node, field.name) });
+                        //     }
+                        // }
+                        // try writer.writeAll(">");
+                        // const planeInfo = @typeInfo(@TypeOf(plane.*));
+                        // inline for (planeInfo.Struct.fields) |field| {
+                        //     try writer.print("{s}", .{@field(plane, field.name) orelse unreachable});
+                        // }
+                        // for (node.children.items) |child| {
+                        //     try parse(&child, writer);
+                        // }
+                        // try writer.print("</{s}>", .{tag});
                         if (node.class) |class| {
                             try writer.print("<{s} class=\"{s}\"", .{ tag, class });
                         } else {
@@ -289,6 +312,15 @@ inline fn generateJsElement(node: n.Node) ![]const u8 {
         std.debug.print("{s}\n{s} element does not support template.\n", .{ @errorName(e), tag });
     }
     return try buf.toOwnedSlice();
+}
+
+pub fn config(layout: fn (Node) Node) !void {
+    const cwd = std.fs.cwd();
+    const layoutFile = try cwd.createFile(".zig-cache/layout.html", .{});
+    // try layoutFile.chmod(0o777);
+    const writer = layoutFile.writer();
+    const raw = n.createNode(.raw).init("ℤ");
+    try parse(&layout(raw), @constCast(&writer));
 }
 
 test "generateWebComponents" {
