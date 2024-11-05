@@ -8,13 +8,12 @@ const RenderError = error{
     InvalidPageFilePath,
 };
 
-var html_output_path: []u8 = @constCast("zig-out/html/");
-
 fn generateHtmlFile(page_name: []const u8) !std.fs.File {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     const src = std.fs.path.dirname(page_name) orelse return RenderError.InvalidPageFilePath; // expect "src/pages"
     const parent = std.fs.path.basename(src); // parent dir of the page component file. ex) pages/, about/
+    var html_output_path: []u8 = @constCast("zig-out/html/");
 
     if (std.mem.eql(u8, parent, "pages")) {
         // single file routing.
@@ -45,7 +44,7 @@ fn generateHtmlFile(page_name: []const u8) !std.fs.File {
 pub fn render(page_name: []const u8, args: Node) !void {
     const html = generateHtmlFile(page_name) catch |e| switch (e) {
         RenderError.InvalidPageFilePath => {
-            std.debug.print("invalid file path: {s}. move below src/pages/**", .{page_name});
+            std.debug.panic("invalid file path: {s}. move below src/pages/**", .{page_name});
             return;
         },
         else => return,
@@ -75,7 +74,7 @@ pub fn render(page_name: []const u8, args: Node) !void {
         _ = try std.fs.File.copyRangeAll(tmp, 0, html, offset, tmp_len);
         return;
     };
-    // try head_file.writer().writeAll("</head>");
+    try head_file.writer().writeAll("</head>");
     try head_file.pwriteAll("</head>", try head_file.getEndPos());
     // tmp.htmlはheadタグの内容を保持
     // bodyタグを保持するhtmlをtmp.htmlに追記
@@ -104,7 +103,6 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                 else => {
                     const tag = plane.tag.asText();
                     if (std.mem.eql(u8, tag, "head")) {
-                        // headタグの内容をhead.htmlに記入
                         var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .read = true });
                         var head_writer = head_output.writer();
                         try head_writer.print("\n<head>", .{});

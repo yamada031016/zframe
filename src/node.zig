@@ -4,7 +4,7 @@ const elem = @import("element.zig");
 const Element = elem.Element;
 const Tag = @import("html.zig").Tag;
 const h = @import("handler.zig");
-const Handler = h.Handler;
+const JsHandler = h.JsHandler;
 const Loader = h.Loader;
 
 /// This function returns Node structures which contains proper Element union.
@@ -15,7 +15,7 @@ pub fn createNode(comptime tagName: Tag) Node {
         .elem = elem.createElement(tagName),
         .children = std.ArrayList(Node).init(allocator),
         .loadContents = std.ArrayList(Loader).init(allocator),
-        .handlers = std.StringHashMap(Handler).init(std.heap.page_allocator),
+        .handlers = std.StringHashMap(JsHandler).init(std.heap.page_allocator),
     };
     return node;
 }
@@ -28,7 +28,7 @@ pub const Node = struct {
     const alloc = gpa.allocator();
     elem: Element,
     children: std.ArrayList(Node),
-    handlers: std.StringHashMap(Handler),
+    handlers: std.StringHashMap(JsHandler),
     loadContents: std.ArrayList(Loader),
     class: ?[]u8 = null,
     id: ?[]u8 = null,
@@ -38,7 +38,7 @@ pub const Node = struct {
             .elem = self.elem,
             .class = self.class,
             .id = self.id,
-            .handlers = std.StringHashMap(Handler).init(alloc),
+            .handlers = std.StringHashMap(JsHandler).init(alloc),
             .loadContents = std.ArrayList(Loader).init(alloc),
             .children = std.ArrayList(Node).init(alloc),
         };
@@ -74,6 +74,13 @@ pub const Node = struct {
                                 }
                             }
                         } else {
+                            // inline for (s.fields) |field| {
+                            //     if (@hasField(@TypeOf(plane), field.name)) {
+                            //         @field(plane, field.name) = @field(args, field.name);
+                            //     } else {
+                            //         self.fatal(NodeError.invalidArgs, args);
+                            //     }
+                            // }
                             inline for (@field(@TypeOf(plane.*), "attributes")) |attr| {
                                 if (@hasField(@TypeOf(args), attr)) {
                                     if (@field(plane, attr) == null) {
@@ -325,7 +332,7 @@ pub const Node = struct {
         return tmp;
     }
 
-    pub fn addHandler(self: *const Node, eventName: []const u8, handler: Handler) Node {
+    pub fn addHandler(self: *const Node, eventName: []const u8, handler: JsHandler) Node {
         var tmp = self.*;
         tmp.handlers.put(eventName, handler) catch |e| {
             std.debug.panic("{s}: failed to put {s} in event handler.", .{ @errorName(e), eventName });

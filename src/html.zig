@@ -1,5 +1,4 @@
 //! This module provides enum for definitions of HTML tags.
-const std = @import("std");
 
 // zig fmt: off
 pub const Tag = enum {

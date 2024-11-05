@@ -24,8 +24,8 @@ pub const WebAssembly = struct {
         };
     }
 
-    pub fn toJS(self: WebAssembly) ![]const u8 {
-        const then = if (self.handler.then) |th| th.func else "";
+    pub fn toJavaScript(self: WebAssembly) ![]const u8 {
+        const then = if (self.handler.then) |then| then.func else "";
         const js = try std.fmt.allocPrint(
             std.heap.page_allocator,
             "const env={{memory:new WebAssembly.Memory({{initial:{},maximum:{}}})}};var memory=env.memory;WebAssembly.instantiateStreaming(fetch('api/{s}'),{{env}}).then({s})",
