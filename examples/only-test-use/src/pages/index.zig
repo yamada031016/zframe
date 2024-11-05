@@ -2,7 +2,8 @@ const z = @import("zframe");
 const c = @import("components");
 const Head = c.head.Head;
 const node = z.node;
-const Handler = z.handler.Handler;
+const h = z.handler;
+const WebAssembly = z.handler.WebAssembly;
 
 fn index() node.Node {
     const h1 = node.createNode(.h1);
@@ -69,15 +70,11 @@ fn card(title: []const u8, description: []const u8) node.Node {
 
 const Layout = @import("components").layout.Layout;
 pub fn main() !void {
-    const handler = Handler.init(
-        .webassembly,
-        .{
-            .filename = "one.wasm",
-            .then = .{
-                .filename = "alert.js",
-                .func = "test",
-            },
+    const handler = .{
+        .then = .{
+            .filename = "alert.js",
+            .func = "test",
         },
-    );
-    try z.render.render(@src().file, Layout(index().addHandler("webassembly", handler)));
+    };
+    try z.render.render(@src().file, Layout(index().loadWebAssembly("one.wasm", handler)));
 }

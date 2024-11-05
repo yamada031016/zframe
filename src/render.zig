@@ -136,17 +136,17 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
                         try writer.print("</{s}>", .{tag});
                     }
                     if (node.handlers.count() != 0) {
-                        var iter = node.handlers.iterator();
-                        while (iter.next()) |it| {
-                            if (std.mem.eql(u8, it.key_ptr.*, "webassembly")) {
-                                var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
-                                if (it.value_ptr.webassembly.then) |then| {
-                                    try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
-                                }
-                                const js = try it.value_ptr.*.webassembly.toJS();
-                                try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script>{s}</script>", .{js}), try head_output.getEndPos());
-                            }
-                        }
+                        // var iter = node.handlers.iterator();
+                        // while (iter.next()) |it| {
+                        //     if (std.mem.eql(u8, it.key_ptr.*, "")) {
+                        //         var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
+                        //         if (it.value_ptr.webassembly.then) |then| {
+                        //             try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
+                        //         }
+                        //         const js = try it.value_ptr.*.webassembly.toJS();
+                        //         try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script>{s}</script>", .{js}), try head_output.getEndPos());
+                        //     }
+                        // }
                     }
                 },
             }
@@ -230,6 +230,19 @@ fn parse(node: *const Node, writer: *std.fs.File.Writer) !void {
             }
         },
     }
+    for (node.loadContents.items) |loader| {
+        var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
+        switch (loader) {
+            .webassembly => |wasm| {
+                if (wasm.handler.then) |then| {
+                    try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
+                }
+                const js = try wasm.toJS();
+                try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script>{s}</script>", .{js}), try head_output.getEndPos());
+            },
+            .javascript => {},
+        }
+    }
 }
 
 fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
@@ -245,17 +258,17 @@ fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
         try writer.print("shadowRoot.appendChild({s}).cloneNode(true);", .{child.elem.getTagName()});
     }
     if (node.handlers.count() != 0) {
-        var iter = node.handlers.iterator();
-        while (iter.next()) |it| {
-            if (std.mem.eql(u8, it.key_ptr.*, "webassembly")) {
-                if (it.value_ptr.webassembly.then) |then| {
-                    var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
-                    try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='{s}'></script>", .{then.filename}), try head_output.getEndPos());
-                }
-                const js = try it.value_ptr.*.webassembly.toJS();
-                try writer.writeAll(try std.fmt.allocPrint(std.heap.page_allocator, "this.addEventListener('click',()=>{{{s}}})", .{js}));
-            }
-        }
+        // var iter = node.handlers.iterator();
+        // while (iter.next()) |it| {
+        // if (std.mem.eql(u8, it.key_ptr.*, "webassembly")) {
+        //     if (it.value_ptr.webassembly.then) |then| {
+        //         var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
+        //         try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='{s}'></script>", .{then.filename}), try head_output.getEndPos());
+        //     }
+        //     const js = try it.value_ptr.*.webassembly.toJS();
+        //     try writer.writeAll(try std.fmt.allocPrint(std.heap.page_allocator, "this.addEventListener('click',()=>{{{s}}})", .{js}));
+        // }
+        // }
     }
     try writer.writeAll("}},{extends:'div'})");
 }

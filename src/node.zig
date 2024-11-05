@@ -3,7 +3,9 @@ const std = @import("std");
 const elem = @import("element.zig");
 const Element = elem.Element;
 const Tag = @import("html.zig").Tag;
-const Handler = @import("handler.zig").Handler;
+const h = @import("handler.zig");
+const Handler = h.Handler;
+const Loader = h.Loader;
 
 /// This function returns Node structures which contains proper Element union.
 pub fn createNode(comptime tagName: Tag) Node {
@@ -12,6 +14,7 @@ pub fn createNode(comptime tagName: Tag) Node {
     const node = Node{
         .elem = elem.createElement(tagName),
         .children = std.ArrayList(Node).init(allocator),
+        .loadContents = std.ArrayList(Loader).init(allocator),
         .handlers = std.StringHashMap(Handler).init(std.heap.page_allocator),
     };
     return node;
@@ -26,6 +29,7 @@ pub const Node = struct {
     elem: Element,
     children: std.ArrayList(Node),
     handlers: std.StringHashMap(Handler),
+    loadContents: std.ArrayList(Loader),
     class: ?[]u8 = null,
     id: ?[]u8 = null,
 
@@ -34,7 +38,8 @@ pub const Node = struct {
             .elem = self.elem,
             .class = self.class,
             .id = self.id,
-            .handlers = std.StringHashMap(Handler).init(std.heap.page_allocator),
+            .handlers = std.StringHashMap(Handler).init(alloc),
+            .loadContents = std.ArrayList(Loader).init(alloc),
             .children = std.ArrayList(Node).init(alloc),
         };
         switch (tmp.elem) {
@@ -91,7 +96,6 @@ pub const Node = struct {
                     },
                 }
             },
-
             .image => |*image| {
                 switch (@typeInfo(@TypeOf(args))) {
                     .Struct => |s| {
@@ -309,6 +313,15 @@ pub const Node = struct {
     pub fn setId(self: *const Node, comptime id_name: []const u8) Node {
         var tmp = self.*;
         tmp.id = @constCast(id_name);
+        return tmp;
+    }
+
+    pub fn loadWebAssembly(self: *const Node, filename: []const u8, handler: h.JsHandler) Node {
+        var tmp = self.*;
+        const loader = .{ .webassembly = h.WebAssembly.init(filename, handler) };
+        tmp.loadContents.append(loader) catch |e| {
+            std.debug.panic("failed to append loadContents.\n{s}", .{@errorName(e)});
+        };
         return tmp;
     }
 

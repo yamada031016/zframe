@@ -10,14 +10,11 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
 
-    const zframe = b.dependency("zframe", .{
-        .target = target,
-        .optimize = .ReleaseFast,
-    });
-    exe.root_module.addImport("zframe", zframe.module("zframe"));
+    const zframe = b.createModule(.{ .root_source_file = b.path("../../src/root.zig") });
+    exe.root_module.addImport("zframe", zframe);
 
     const components = b.createModule(.{ .root_source_file = b.path("src/components/components.zig") });
-    components.addImport("zframe", zframe.module("zframe"));
+    components.addImport("zframe", zframe);
     components.addImport("components", components);
     exe.root_module.addImport("components", components);
 
@@ -43,7 +40,6 @@ pub fn build(b: *std.Build) !void {
     // when generating html file, also generate unique hash value (from zig file metadata ?).
     // only in case of hash values are changed, delete old html files.
     cwd.makeDir("zig-out") catch {};
-    cwd.makeDir("zig-out/webcomponents") catch {};
     cwd.makeDir("zig-out/html") catch {
         var output_dir = try cwd.openDir("zig-out/html", .{ .iterate = true });
         defer output_dir.close();
@@ -69,9 +65,13 @@ pub fn build(b: *std.Build) !void {
     try html_dir.chmod(0o777);
     defer html_dir.close();
 
-    try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe.module("zframe") }, .{ "components", components } });
+    try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe }, .{ "components", components } });
 
     try wasm_autobuild(b, allocator, html_dir);
+
+    const js_dir = try html_dir.makeOpenPath("js", .{});
+    try move_contents(allocator, "src/js", js_dir);
+    try move_contents(allocator, "public", html_dir);
 
     const exe_unit_tests = b.addTest(.{
         .root_source_file = b.path("src/main.zig"),
@@ -187,15 +187,31 @@ fn wasm_autobuild(b: *std.Build, allocator: std.mem.Allocator, root_dir: std.fs.
                 wasm_api.rdynamic = true;
                 wasm_api.stack_size = std.wasm.page_size;
                 wasm_api.entry = .disabled;
-                // wasm_api.enable_wasmtime = true;
-                // wasm_api.initial_memory = std.wasm.page_size * 2;
-                // wasm_api.max_memory = std.wasm.page_size * 2;
+                wasm_api.initial_memory = std.wasm.page_size * 2;
+                wasm_api.max_memory = std.wasm.page_size * 2;
 
                 const file_name = try std.fmt.allocPrint(std.heap.page_allocator, "{s}.wasm", .{std.fs.path.stem(file.path)});
                 // const wasm_install =b.addInstallArtifact(wasm_api, .{ .dest_dir = .default, .dest_sub_path=file_name});
                 // b.getInstallStep().dependOn(&wasm_install.step);
                 b.getInstallStep().dependOn(&b.addInstallArtifact(wasm_api, .{ .dest_dir = .{ .override = .{ .custom = "html/api" } }, .dest_sub_path = file_name }).step);
                 // b.installBinFile(try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/bin/{s}", .{file_name}), try std.fmt.allocPrint(std.heap.page_allocator, "../html/api/{s}", .{file_name}));
+            },
+            else => {},
+        }
+    }
+}
+
+fn move_contents(allocator: std.mem.Allocator, dir_name:[]const u8,output_dir:std.fs.Dir) !void {
+    const dir = try std.fs.cwd().openDir(dir_name, .{ .iterate = true });
+    var walker = try dir.walk(allocator);
+    while (try walker.next()) |file| {
+        switch (file.kind) {
+            .file => {
+                try std.fs.Dir.copyFile(dir, file.path, output_dir, file.path, .{});
+            },
+            .directory => {
+                const path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{dir_name, file.path});
+                try move_contents(allocator, path, try output_dir.makeOpenPath(file.path, .{}));
             },
             else => {},
         }
