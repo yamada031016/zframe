@@ -38,32 +38,33 @@ pub const WebAssembly = struct {
 pub const JsWrapper = struct {
     filename: []const u8,
     func: []const u8,
-    pub const events = enum {
-        click,
-        keydown,
-        keyup,
-        mousedown,
-        mouseup,
-        mousemove,
-        mouseover,
-        mouseout,
-        onLoad,
-        onUnload,
-        focus,
-        blur,
-        submit,
-        reset,
-        change,
-        resize,
-        abort,
-        Error,
-        load,
-    };
 };
 
 pub const JsHandler = struct {
     then: ?JsWrapper = null,
     err: ?JsWrapper = null,
+};
+
+pub const Events = enum {
+    click,
+    keydown,
+    keyup,
+    mousedown,
+    mouseup,
+    mousemove,
+    mouseover,
+    mouseout,
+    onLoad,
+    onUnload,
+    focus,
+    blur,
+    submit,
+    reset,
+    change,
+    resize,
+    abort,
+    Error,
+    load,
 };
 
 const loadContents = enum {

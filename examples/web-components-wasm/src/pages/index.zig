@@ -17,7 +17,7 @@ fn index() node.Node {
         // img.init(.{.src="hoge", .alt="Test image", .width=100, .height=200}),
         resultPreview(),
         div.setClass("text-center mt-32").init(.{
-            h1.init(.{"zframe -- Web Frontend Framework"}).setClass("text-5xl text-[#F0544F] font-black"),
+            h1.init(.{"zframe -- Web Frontend Framework"}).setClass("text-5xl text-[#F0544F] font-black").addEventListener(.click, .{ .filename = "alert.js", .func = "introduce" }),
             p.init(.{
                 \\ Utilize Wasm easily, without any configure and technics.<br>
                 \\ zframe enable you to integrate Wasm and your Website.

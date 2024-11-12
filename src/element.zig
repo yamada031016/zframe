@@ -32,7 +32,7 @@ pub fn createElement(comptime tagName: Tag) Element {
 
 /// This enum definites types of Element.
 /// These value is used at Element union as key.
-const ElementType = enum {
+pub const ElementType = enum {
     plane,
     image,
     hyperlink,
@@ -138,12 +138,12 @@ pub const Image = struct {
         "usemap",
     };
 
-    const crossorigin = enum {
+    const Crossorigin = enum {
         anonymous,
         useCredentials,
     };
 
-    const decoding = enum {
+    const Decoding = enum {
         Sync,
         Async,
         Auto,
@@ -155,7 +155,7 @@ pub const Image = struct {
         auto,
     };
 
-    const loading = enum {
+    const Loading = enum {
         eager,
         lazy,
     };
@@ -176,12 +176,12 @@ pub const Image = struct {
     width: ?u16 = null,
     height: ?u16 = null,
     attributionsrc: ?[]const u8 = null,
-    crossorigin: ?crossorigin = null,
-    decoding: ?decoding = null,
+    crossorigin: ?Crossorigin = null,
+    decoding: ?Decoding = null,
     elementtiming: ?[]const u8 = null,
     fetchpriority: ?fetchPriority = null,
     ismap: ?bool = null,
-    loading: ?loading = null,
+    loading: ?Loading = null,
     referrerpolicy: ?referrerPolicy = null,
     sizes: ?[]const u8 = null,
     srcset: ?[]const u8 = null,
@@ -214,7 +214,7 @@ pub const HyperLink = struct {
         unsafeUrl,
     };
 
-    const target = enum {
+    const Target = enum {
         self,
         blank,
         parent,
@@ -224,7 +224,7 @@ pub const HyperLink = struct {
     template: ?[]u8 = null,
     href: ?[]u8 = null,
 
-    target: ?target = null,
+    target: ?Target = null,
     download: ?[]const u8 = null,
     rel: ?[]const u8 = null,
     hreflang: ?[]const u8 = null,
@@ -309,7 +309,7 @@ pub const Link = struct {
         worker,
     };
 
-    const crossorigin = enum {
+    const Crossorigin = enum {
         anonymous,
         useCredentials,
     };
@@ -333,7 +333,7 @@ pub const Link = struct {
 
     as: ?[]const u8 = null,
     blocking: ?[]const u8 = null,
-    crossorigin: ?crossorigin = null,
+    crossorigin: ?Crossorigin = null,
     disabled: ?bool = null, // for rel="stylesheet" only
     fetchpriority: ?fetchPriority = null,
     hreflang: ?[]const u8 = null,

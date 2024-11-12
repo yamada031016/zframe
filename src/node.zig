@@ -15,7 +15,7 @@ pub fn createNode(comptime tagName: Tag) Node {
         .elem = elem.createElement(tagName),
         .children = std.ArrayList(Node).init(allocator),
         .loadContents = std.ArrayList(Loader).init(allocator),
-        .handlers = std.StringHashMap(JsHandler).init(std.heap.page_allocator),
+        .handlers = std.AutoHashMap(h.Events, h.JsWrapper).init(allocator),
     };
     return node;
 }
@@ -28,7 +28,7 @@ pub const Node = struct {
     const alloc = gpa.allocator();
     elem: Element,
     children: std.ArrayList(Node),
-    handlers: std.StringHashMap(JsHandler),
+    handlers: std.AutoHashMap(h.Events, h.JsWrapper),
     loadContents: std.ArrayList(Loader),
     class: ?[]u8 = null,
     id: ?[]u8 = null,
@@ -38,7 +38,7 @@ pub const Node = struct {
             .elem = self.elem,
             .class = self.class,
             .id = self.id,
-            .handlers = std.StringHashMap(JsHandler).init(alloc),
+            .handlers = std.AutoHashMap(h.Events, h.JsWrapper).init(alloc),
             .loadContents = std.ArrayList(Loader).init(alloc),
             .children = std.ArrayList(Node).init(alloc),
         };
@@ -328,6 +328,14 @@ pub const Node = struct {
         const loader = .{ .webassembly = h.WebAssembly.init(filename, handler) };
         tmp.loadContents.append(loader) catch |e| {
             std.debug.panic("failed to append loadContents.\n{s}", .{@errorName(e)});
+        };
+        return tmp;
+    }
+
+    pub fn addEventListener(self: *const Node, event: h.Events, js: h.JsWrapper) Node {
+        var tmp = self.*;
+        tmp.handlers.put(event, js) catch |e| {
+            std.debug.panic("{s}: failed to put {any} in event handler.", .{ @errorName(e), event });
         };
         return tmp;
     }
