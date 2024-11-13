@@ -13,17 +13,17 @@ Zig言語はv1に達しておらず、破壊的変更を恐れていません。
 - [zig.guide](https://zig.guide/)
 - [ziglings](https://codeberg.org/ziglings/exercises/)
 
-# セットアップ
-## インストール
-## プロジェクト作成
-# Webサイトの作成
-## 新しいページの追加
-## スタイリング
-## コンポーネントシステム
-### リンク
-### レイアウトコンポーネントの作成
-### Headコンポーネントの作成
-# Web Components
-## Web Componentsの作成
-# WebAssembly
-## WebAssemblyの活用
+## セットアップ
+### インストール
+### プロジェクト作成
+## Webサイトの作成
+### 新しいページの追加
+### スタイリング
+### コンポーネントシステム
+#### リンク
+#### レイアウトコンポーネントの作成
+#### Headコンポーネントの作成
+## Web Components
+### Web Componentsの作成
+## WebAssembly
+### WebAssemblyの活用
