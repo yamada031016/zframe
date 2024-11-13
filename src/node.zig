@@ -52,10 +52,10 @@ pub const Node = struct {
                                     .Pointer => |pointer| {
                                         if (@typeInfo(pointer.child) == .Array) {
                                             if (i < args.len - 1) {
-                                                // stringとみなす
+                                                // expect []const u8
                                                 plane.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
                                             } else {
-                                                // 続くargがなければ非フォーマット文字列
+                                                // expect []const u8 without format specific.
                                                 plane.*.template = @constCast(arg);
                                             }
                                         } else if (pointer.child == u8) {
@@ -74,21 +74,9 @@ pub const Node = struct {
                                 }
                             }
                         } else {
-                            // inline for (s.fields) |field| {
-                            //     if (@hasField(@TypeOf(plane), field.name)) {
-                            //         @field(plane, field.name) = @field(args, field.name);
-                            //     } else {
-                            //         self.fatal(NodeError.invalidArgs, args);
-                            //     }
-                            // }
-                            inline for (@field(@TypeOf(plane.*), "attributes")) |attr| {
-                                if (@hasField(@TypeOf(args), attr)) {
-                                    if (@field(plane, attr) == null) {
-                                        switch (@typeInfo(@TypeOf(@field(args, attr)))) {
-                                            .Pointer => @field(plane, attr) = @constCast(@field(args, attr)),
-                                            else => @field(plane, attr) = @field(args, attr),
-                                        }
-                                    }
+                            inline for (s.fields) |field| {
+                                if (@hasField(@TypeOf(plane), field.name)) {
+                                    @field(plane, field.name) = @field(args, field.name);
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
@@ -97,7 +85,7 @@ pub const Node = struct {
                     },
                     else => |e| {
                         if (e == .Array or e == .Pointer) {
-                            // expect args as string
+                            // expect string
                             plane.*.template = @constCast(args);
                         }
                     },
@@ -107,14 +95,9 @@ pub const Node = struct {
                 switch (@typeInfo(@TypeOf(args))) {
                     .Struct => |s| {
                         if (s.is_tuple) {} else {
-                            inline for (@field(@TypeOf(image.*), "attributes")) |attr| {
-                                if (@hasField(@TypeOf(args), attr)) {
-                                    if (@field(image, attr) == null) {
-                                        switch (@typeInfo(@TypeOf(@field(args, attr)))) {
-                                            .Pointer => @field(image, attr) = @constCast(@field(args, attr)),
-                                            else => @field(image, attr) = @field(args, attr),
-                                        }
-                                    }
+                            inline for (s.fields) |field| {
+                                if (@hasField(@TypeOf(image), field.name)) {
+                                    @field(image, field.name) = @field(args, field.name);
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
@@ -173,14 +156,9 @@ pub const Node = struct {
                                 }
                             }
                         } else {
-                            inline for (@field(@TypeOf(hyperlink.*), "attributes")) |attr| {
-                                if (@hasField(@TypeOf(args), attr)) {
-                                    if (@field(hyperlink, attr) == null) {
-                                        switch (@typeInfo(@TypeOf(@field(args, attr)))) {
-                                            .Pointer => @field(hyperlink, attr) = @constCast(@field(args, attr)),
-                                            else => @field(hyperlink, attr) = @field(args, attr),
-                                        }
-                                    }
+                            inline for (s.fields) |field| {
+                                if (@hasField(@TypeOf(hyperlink), field.name)) {
+                                    @field(hyperlink, field.name) = @field(args, field.name);
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
@@ -215,14 +193,9 @@ pub const Node = struct {
                                 }
                             }
                         } else {
-                            inline for (@field(@TypeOf(link.*), "attributes")) |attr| {
-                                if (@hasField(@TypeOf(args), attr)) {
-                                    if (@field(link, attr) == null) {
-                                        switch (@typeInfo(@TypeOf(@field(args, attr)))) {
-                                            .Pointer => @field(link, attr) = @constCast(@field(args, attr)),
-                                            else => @field(link, attr) = @field(args, attr),
-                                        }
-                                    }
+                            inline for (s.fields) |field| {
+                                if (@hasField(@TypeOf(link), field.name)) {
+                                    @field(link, field.name) = @field(args, field.name);
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
@@ -259,6 +232,14 @@ pub const Node = struct {
                                     else => self.fatal(NodeError.invalidArgs, args),
                                 }
                             }
+                        } else {
+                            inline for (s.fields) |field| {
+                                if (@hasField(@TypeOf(meta), field.name)) {
+                                    @field(meta, field.name) = @field(args, field.name);
+                                } else {
+                                    self.fatal(NodeError.invalidArgs, args);
+                                }
+                            }
                         }
                     },
                     else => self.fatal(NodeError.invalidArgs, args),
@@ -273,10 +254,8 @@ pub const Node = struct {
                                     .Pointer => |pointer| {
                                         if (@typeInfo(pointer.child) == .Array) {
                                             if (i < args.len - 1) {
-                                                // stringとみなす
                                                 custom.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
                                             } else {
-                                                // 続くargがなければ非フォーマット文字列
                                                 custom.*.template = @constCast(arg);
                                             }
                                         } else if (pointer.child == u8) {
@@ -297,7 +276,6 @@ pub const Node = struct {
                     },
                     else => |e| {
                         if (e == .Array or e == .Pointer) {
-                            // 単なる文字列と仮定
                             custom.*.template = @constCast(args);
                         }
                     },
@@ -319,13 +297,17 @@ pub const Node = struct {
 
     pub fn setId(self: *const Node, comptime id_name: []const u8) Node {
         var tmp = self.*;
-        tmp.id = @constCast(id_name);
+        if (tmp.id) |id| {
+            tmp.id = std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ id, @constCast(id_name) }) catch @panic("failed to format class string");
+        } else {
+            tmp.id = @constCast(id_name);
+        }
         return tmp;
     }
 
     pub fn loadWebAssembly(self: *const Node, filename: []const u8, handler: h.JsHandler) Node {
         var tmp = self.*;
-        const loader = .{ .webassembly = h.WebAssembly.init(filename, handler) };
+        const loader = h.Loader{ .webassembly = h.WebAssembly.init(filename, handler) };
         tmp.loadContents.append(loader) catch |e| {
             std.debug.panic("failed to append loadContents.\n{s}", .{@errorName(e)});
         };

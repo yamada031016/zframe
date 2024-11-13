@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
 
-    const zframe = b.createModule(.{ .root_source_file = b.path("../../src/root.zig") });
+    const zframe = b.createModule(.{ .root_source_file = b.path("../../src/zframe.zig") });
     exe.root_module.addImport("zframe", zframe);
 
     const components = b.createModule(.{ .root_source_file = b.path("src/components/components.zig") });
@@ -201,7 +201,7 @@ fn wasm_autobuild(b: *std.Build, allocator: std.mem.Allocator, root_dir: std.fs.
     }
 }
 
-fn move_contents(allocator: std.mem.Allocator, dir_name:[]const u8,output_dir:std.fs.Dir) !void {
+fn move_contents(allocator: std.mem.Allocator, dir_name: []const u8, output_dir: std.fs.Dir) !void {
     const dir = try std.fs.cwd().openDir(dir_name, .{ .iterate = true });
     var walker = try dir.walk(allocator);
     while (try walker.next()) |file| {
@@ -210,7 +210,7 @@ fn move_contents(allocator: std.mem.Allocator, dir_name:[]const u8,output_dir:st
                 try std.fs.Dir.copyFile(dir, file.path, output_dir, file.path, .{});
             },
             .directory => {
-                const path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{dir_name, file.path});
+                const path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir_name, file.path });
                 try move_contents(allocator, path, try output_dir.makeOpenPath(file.path, .{}));
             },
             else => {},

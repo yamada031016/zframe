@@ -22,7 +22,7 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
         // ex) pages/index.zig, pages/about.zig.
         if (std.fs.path.dirname(src)) |_| {
             const url = std.fs.path.stem(std.fs.path.basename(page_name));
-            return try std.fs.cwd().createFile(try std.fmt.allocPrintZ(allocator, "{s}/{s}.html", .{ dir_name, url }), .{ .read = true });
+            return try std.fs.cwd().createFile(try std.fmt.allocPrint(allocator, "{s}/{s}.html", .{ dir_name, url }), .{ .read = true });
         }
     } else if (!mem.eql(u8, parent, "src") and mem.eql(u8, std.fs.path.basename(page_name), "page.zig")) {
         // multiple file routing.
@@ -36,7 +36,7 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
             output_dir.close();
             parent_dir = std.fs.path.dirname(parent_dir).?;
         }
-        const fileName = try std.fmt.allocPrintZ(allocator, "{s}.html", .{url});
+        const fileName = try std.fmt.allocPrint(allocator, "{s}.html", .{url});
         html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, fileName });
         return try std.fs.cwd().createFile(html_output_path, .{ .read = true });
     }
@@ -46,7 +46,7 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
 pub fn render(page_name: []const u8, args: Node) !void {
     const html = generateHtmlFile("zig-out/html", page_name) catch |e| switch (e) {
         RenderError.InvalidPageFilePath => {
-            std.debug.panic("invalid file path: {s}. move below src/pages/**", .{page_name});
+            std.debug.panic("invalid file path: {s} . move below src/pages/**", .{page_name});
             return;
         },
         else => return,
@@ -96,26 +96,6 @@ pub fn render(page_name: []const u8, args: Node) !void {
     const offset = try html.pwrite("<!DOCTYPE html>", 0);
     _ = try std.fs.File.copyRangeAll(head_file, 0, html, offset, head_len);
     try std.fs.cwd().deleteFile(".zig-cache/head.html");
-}
-
-inline fn parseElement(elem: anytype) ![]u8 {
-    const elemInfo = @typeInfo(@TypeOf(elem));
-    var buf: []u8 = "";
-    inline for (elemInfo.Struct.fields) |field| {
-        if (@hasField(@TypeOf(elem), field.name)) {
-            const fieldValue = @field(elem, field.name);
-            if ((@TypeOf(fieldValue)) == ?[]u8) {
-                if (std.mem.eql(u8, "template", field.name)) {
-                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}>{s}", .{ buf, fieldValue orelse "" });
-                } else {
-                    if (fieldValue) |f| {
-                        buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{s}\" {s}", .{ field.name, f, buf });
-                    }
-                }
-            }
-        }
-    }
-    return std.heap.page_allocator.dupe(u8, buf);
 }
 
 fn parse(node: *const Node, buffer: []u8) ![]u8 {
@@ -228,6 +208,26 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
     return try std.heap.page_allocator.dupe(u8, buf);
 }
 
+inline fn parseElement(elem: anytype) ![]u8 {
+    const elemInfo = @typeInfo(@TypeOf(elem));
+    var buf: []u8 = "";
+    inline for (elemInfo.Struct.fields) |field| {
+        if (@hasField(@TypeOf(elem), field.name)) {
+            const fieldValue = @field(elem, field.name);
+            if ((@TypeOf(fieldValue)) == ?[]u8) {
+                if (std.mem.eql(u8, "template", field.name)) {
+                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}>{s}", .{ buf, fieldValue orelse "" });
+                } else {
+                    if (fieldValue) |f| {
+                        buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{s}\" {s}", .{ field.name, f, buf });
+                    }
+                }
+            }
+        }
+    }
+    return std.heap.page_allocator.dupe(u8, buf);
+}
+
 fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
     const webcomponents_template = "customElements.define('{s}',class extends HTMLDivElement{{constructor(){{super();const shadowRoot=this.attachShadow({{mode:'open'}});";
     if (node.id) |id| {
@@ -279,7 +279,6 @@ inline fn generateJsElement(node: n.Node) ![]const u8 {
 pub fn config(layout: fn (Node) Node) !void {
     const cwd = std.fs.cwd();
     const layoutFile = try cwd.createFile(".zig-cache/layout.html", .{});
-    // try layoutFile.chmod(0o777);
     const writer = layoutFile.writer();
     const raw = n.createNode(.raw).init("ℤ");
     const dom = try parse(&layout(raw), "");

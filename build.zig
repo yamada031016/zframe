@@ -6,13 +6,13 @@ pub fn build(b: *std.Build) !void {
 
     const lib = b.addStaticLibrary(.{
         .name = "zframe",
-        .root_source_file = b.path("src/root.zig"),
+        .root_source_file = b.path("src/zframe.zig"),
         .target = target,
         .optimize = optimize,
     });
 
     const zframe_mod = b.addModule("zframe", .{
-        .root_source_file = b.path("src/root.zig"),
+        .root_source_file = b.path("src/zframe.zig"),
         .target = target,
         .optimize = .ReleaseFast,
     });
@@ -40,7 +40,7 @@ pub fn build(b: *std.Build) !void {
     docs_step.dependOn(&docs_install.step);
 
     const lib_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/root.zig"),
+        .root_source_file = b.path("src/zframe.zig"),
         .target = target,
         .optimize = optimize,
     });

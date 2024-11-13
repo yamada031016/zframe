@@ -5,7 +5,7 @@ const wasm = std.wasm;
 /// WebAssembly wrapper
 pub const WebAssembly = struct {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const alloc = gpa.allocator();
+    const allocator = gpa.allocator();
     filename: []const u8,
     env: wasm.Memory,
     handler: JsHandler,
@@ -24,10 +24,14 @@ pub const WebAssembly = struct {
         };
     }
 
+    pub fn deinit(_: WebAssembly) void {
+        _ = gpa.deinit();
+    }
+
     pub fn toJavaScript(self: WebAssembly) ![]const u8 {
         const then = if (self.handler.then) |then| then.func else "";
         const js = try std.fmt.allocPrint(
-            std.heap.page_allocator,
+            allocator,
             "const env={{memory:new WebAssembly.Memory({{initial:{},maximum:{}}})}};var memory=env.memory;WebAssembly.instantiateStreaming(fetch('api/{s}'),{{env}}).then({s})",
             .{ self.env.limits.min, self.env.limits.max, self.filename, then },
         );

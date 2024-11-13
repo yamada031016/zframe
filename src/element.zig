@@ -4,30 +4,18 @@ const Tag = @import("html.zig").Tag;
 
 /// This function returns proper Element union.
 pub fn createElement(comptime tagName: Tag) Element {
-    switch (tagName) {
-        .img => {
-            return Element{ .image = Image{} };
+    return switch (tagName) {
+        .img => Element{ .image = Image{} },
+        .a => Element{ .hyperlink = HyperLink{} },
+        .link => Element{ .link = Link{} },
+        .meta => Element{ .meta = Meta{} },
+        .custom => Element{ .custom = Custom{} },
+        else => Element{
+            .plane = PlaneElement{
+                .tag = tagName,
+            },
         },
-        .a => {
-            return Element{ .hyperlink = HyperLink{} };
-        },
-        .link => {
-            return Element{ .link = Link{} };
-        },
-        .meta => {
-            return Element{ .meta = Meta{} };
-        },
-        .custom => {
-            return Element{ .custom = Custom{} };
-        },
-        else => {
-            return Element{
-                .plane = PlaneElement{
-                    .tag = tagName,
-                },
-            };
-        },
-    }
+    };
 }
 
 /// This enum definites types of Element.
@@ -50,10 +38,12 @@ pub const Element = union(ElementType) {
     meta: Meta,
     custom: Custom,
 
-    pub const ElementError = error{
+    const TemplateError = error{
         TemplateNotSupport,
         TemplateNotSetting,
     };
+
+    pub const ElementError = TemplateError;
 
     pub fn getTagName(self: *const Element) []const u8 {
         switch (self.*) {
@@ -76,11 +66,10 @@ pub const Element = union(ElementType) {
     }
 };
 
-// add functions checking validation.
+// add functions for checking validation.
 
 /// This structure represents Generic HTML Element such as h1, p, and so on.
 pub const PlaneElement = struct {
-    const Self = @This();
     pub const attributes = [_][]const u8{
         "accesskey",
         "contenteditable",
@@ -119,7 +108,6 @@ pub const PlaneElement = struct {
 /// This structure represents image tag without any auto-optimization.
 // add isValid() for check srcset, sizes...
 pub const Image = struct {
-    const Self = @This();
     pub const attributes = [_][]const u8{
         "src",
         "alt",
@@ -190,7 +178,6 @@ pub const Image = struct {
 
 /// This structure represents anchor tag without any auto-optimization.
 pub const HyperLink = struct {
-    const Self = @This();
     pub const attributes = [_][]const u8{
         "href",
         "target",
@@ -236,8 +223,6 @@ pub const HyperLink = struct {
 
 /// This structure represents meta tag.
 pub const Meta = struct {
-    const Self = @This();
-
     meta_type: ?MetaType = undefined,
     property: ?[]u8 = null,
     content: ?[]u8 = null,
@@ -273,7 +258,6 @@ pub const Meta = struct {
 
 /// This structure represents link tag.
 pub const Link = struct {
-    const Self = @This();
     pub const attributes = [_][]const u8{
         "as",
         "blocking",
@@ -353,7 +337,5 @@ pub const Link = struct {
 /// const custom_button = custom.setId("custom-button");
 /// custom_button.init(.{})
 pub const Custom = struct {
-    const Self = @This();
-
     template: ?[]u8 = null,
 };

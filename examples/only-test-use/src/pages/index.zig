@@ -17,7 +17,7 @@ fn index() node.Node {
         Head("zframe - Zig Web Frontend Framework", .{}),
         // img.init(.{.src="hoge", .alt="Test image", .width=100, .height=200}),
         div.setClass("text-center mt-32").init(.{
-            h1.init(.{"zframe -- Web Frontend Framework"}).setClass("text-5xl text-[#F0544F] font-black"),
+            h1.init(.{"praia -- Web Frontend Framework"}).setClass("text-5xl text-[#F0544F] font-black"),
             p.init(.{
                 \\ Utilize Wasm easily, without any configure and technics.<br>
                 \\ zframe enable you to integrate Wasm and your Website.
@@ -69,7 +69,7 @@ fn card(title: []const u8, description: []const u8) node.Node {
 }
 
 pub fn main() !void {
-    const handler = .{
+    const handler = z.handler.JsHandler{
         .then = .{
             .filename = "alert.js",
             .func = "test",
