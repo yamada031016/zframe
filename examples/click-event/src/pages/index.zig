@@ -7,7 +7,7 @@ fn index() node.Node {
     const p = node.createNode(.p);
     const clickHandler = z.handler.EventListener{
         .target = .click,
-        .js = .{
+        .content = .{
             .javascript = .{
                 .filename = "alert.js",
                 .func = "test",
