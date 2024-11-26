@@ -102,8 +102,8 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
     var buf = buffer;
     switch (node.elem) {
         .custom => {
-            if (node.id) |id| {
-                const fileName = try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/html/webcomponents/{s}.js", .{id});
+            if (node.is) |is| {
+                const fileName = try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/html/webcomponents/{s}.js", .{is});
                 std.fs.cwd().access(fileName, .{}) catch recover: {
                     const output = try std.fs.cwd().createFile(fileName, .{});
                     try generateWebComponents(node, output.writer());
@@ -115,12 +115,12 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
                     const head_writer = head.writer();
                     try head_writer.print("\n<head>", .{});
                 };
-                var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
+                var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .truncate = false });
                 const wb_loader = try std.fmt.allocPrint(std.heap.page_allocator, "<script type='module'src='webcomponents/{s}'defer></script>", .{std.fs.path.basename(fileName)});
                 try head_output.pwriteAll(wb_loader, try head_output.getEndPos());
-                buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<div is={s}></div>", .{ buf, id });
+                buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<div is=\"{s}\"></div>", .{ buf, is });
             } else {
-                std.debug.panic("custom element must have id field.\n{any}\n", .{node});
+                std.debug.panic("custom element must have is field.\n{any}\n", .{node});
             }
         },
         .meta => |*meta| {
@@ -180,7 +180,7 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
         },
     }
     for (node.loadContents.items) |loader| {
-        var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
+        var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .truncate = false });
         switch (loader) {
             .webassembly => |wasm| {
                 if (wasm.handler.then) |then| {
@@ -192,18 +192,39 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
             .javascript => {},
         }
     }
-    if (node.handlers.count() != 0) {
-        // var iter = node.handlers.iterator();
-        // while (iter.next()) |it| {
-        //     if (std.mem.eql(u8, it.key_ptr.*, "")) {
-        //         var head_output = try std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write });
-        //         if (it.value_ptr.webassembly.then) |then| {
-        //             try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
-        //         }
-        //         const js = try it.value_ptr.*.webassembly.toJS();
-        //         try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script>{s}</script>", .{js}), try head_output.getEndPos());
-        //     }
-        // }
+    if (node.listener.count() != 0) {
+        var iter = node.listener.iterator();
+        while (iter.next()) |it| {
+            // switch (it.value_ptr.target) {
+            //     .click => {
+            var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .truncate = false });
+            switch (it.value_ptr.content) {
+                .javascript => |js| {
+                    try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{js.filename}), try head_output.getEndPos());
+                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<script>document.getElementById(\"{}\").addEventListener(\"{s}\",()=>{{{s}()}})</script>", .{
+                        buf,
+                        it.key_ptr.*,
+                        @tagName(it.value_ptr.*.target),
+                        js.func,
+                    });
+                },
+                .webassembly => |wasm| {
+                    if (wasm.handler.then) |then| {
+                        try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
+                    }
+                    const js = try wasm.toJavaScript();
+                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<script>document.addEventListener('DOMContentLoaded',()=>{{document.getElementById(\"{}\").addEventListener(\"{s}\",()=>{{{s}()}})}})</script>", .{
+                        buf,
+                        it.key_ptr.*,
+                        @tagName(it.value_ptr.*.target),
+                        js,
+                    });
+                },
+            }
+            //     },
+            //     else => {},
+            // }
+        }
     }
     return try std.heap.page_allocator.dupe(u8, buf);
 }
@@ -219,7 +240,7 @@ inline fn parseElement(elem: anytype) ![]u8 {
                     buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}>{s}", .{ buf, fieldValue orelse "" });
                 } else {
                     if (fieldValue) |f| {
-                        buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{s}\" {s}", .{ field.name, f, buf });
+                        buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{s}\"{s}", .{ field.name, f, buf });
                     }
                 }
             }
@@ -230,8 +251,8 @@ inline fn parseElement(elem: anytype) ![]u8 {
 
 fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
     const webcomponents_template = "customElements.define('{s}',class extends HTMLDivElement{{constructor(){{super();const shadowRoot=this.attachShadow({{mode:'open'}});";
-    if (node.id) |id| {
-        try writer.print(webcomponents_template, .{id});
+    if (node.is) |is| {
+        try writer.print(webcomponents_template, .{is});
     }
     for (node.children.items) |child| {
         try writer.writeAll(try generateJsElement(child));
@@ -240,8 +261,8 @@ fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
         }
         try writer.print("shadowRoot.appendChild({s}).cloneNode(true);", .{child.elem.getTagName()});
     }
-    if (node.handlers.count() != 0) {
-        // var iter = node.handlers.iterator();
+    if (node.listener.count() != 0) {
+        // var iter = node.listener.iterator();
         // while (iter.next()) |it| {
         // if (std.mem.eql(u8, it.key_ptr.*, "webassembly")) {
         //     if (it.value_ptr.webassembly.then) |then| {

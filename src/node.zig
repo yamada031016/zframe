@@ -15,7 +15,7 @@ pub fn createNode(comptime tagName: Tag) Node {
         .elem = elem.createElement(tagName),
         .children = std.ArrayList(Node).init(allocator),
         .loadContents = std.ArrayList(Loader).init(allocator),
-        .handlers = std.AutoHashMap(h.Events, h.JsWrapper).init(allocator),
+        .listener = std.AutoHashMap(u64, h.EventListener).init(allocator),
     };
     return node;
 }
@@ -28,17 +28,19 @@ pub const Node = struct {
     const alloc = gpa.allocator();
     elem: Element,
     children: std.ArrayList(Node),
-    handlers: std.AutoHashMap(h.Events, h.JsWrapper),
+    listener: std.AutoHashMap(u64, h.EventListener),
     loadContents: std.ArrayList(Loader),
     class: ?[]u8 = null,
     id: ?[]u8 = null,
+    is: ?[]u8 = null,
 
     pub fn init(self: *const Node, args: anytype) Node {
         var tmp = Node{
             .elem = self.elem,
             .class = self.class,
             .id = self.id,
-            .handlers = std.AutoHashMap(h.Events, h.JsWrapper).init(alloc),
+            .is = self.is,
+            .listener = std.AutoHashMap(u64, h.EventListener).init(alloc),
             .loadContents = std.ArrayList(Loader).init(alloc),
             .children = std.ArrayList(Node).init(alloc),
         };
@@ -285,7 +287,7 @@ pub const Node = struct {
         return tmp;
     }
 
-    pub fn setClass(self: *const Node, comptime class_name: []const u8) Node {
+    pub fn setClass(self: *const Node, class_name: []const u8) Node {
         var tmp = self.*;
         if (tmp.class) |class| {
             tmp.class = std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ class, @constCast(class_name) }) catch @panic("failed to format class string");
@@ -295,13 +297,19 @@ pub const Node = struct {
         return tmp;
     }
 
-    pub fn setId(self: *const Node, comptime id_name: []const u8) Node {
+    pub fn setId(self: *const Node, id_name: []const u8) Node {
         var tmp = self.*;
         if (tmp.id) |id| {
             tmp.id = std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ id, @constCast(id_name) }) catch @panic("failed to format class string");
         } else {
             tmp.id = @constCast(id_name);
         }
+        return tmp;
+    }
+
+    pub fn define(self: *const Node, custom_name: []const u8) Node {
+        var tmp = self.*;
+        tmp.is = @constCast(custom_name);
         return tmp;
     }
 
@@ -314,20 +322,20 @@ pub const Node = struct {
         return tmp;
     }
 
-    pub fn addEventListener(self: *const Node, event: h.Events, js: h.JsWrapper) Node {
+    pub fn addEventListener(self: *const Node, listener: h.EventListener) Node {
         var tmp = self.*;
-        tmp.handlers.put(event, js) catch |e| {
-            std.debug.panic("{s}: failed to put {any} in event handler.", .{ @errorName(e), event });
+        const randomNumber = generate: {
+            while (true) {
+                const r = std.crypto.random.int(u64);
+                if (!tmp.listener.contains(r)) {
+                    break :generate r;
+                }
+            }
         };
-        return tmp;
-    }
-
-    pub fn addHandler(self: *const Node, eventName: []const u8, handler: JsHandler) Node {
-        var tmp = self.*;
-        tmp.handlers.put(eventName, handler) catch |e| {
-            std.debug.panic("{s}: failed to put {s} in event handler.", .{ @errorName(e), eventName });
+        tmp.listener.put(randomNumber, listener) catch |e| {
+            std.debug.panic("{s}: failed to put {any} in event handler.", .{ @errorName(e), listener });
         };
-        return tmp;
+        return tmp.setId(std.fmt.allocPrint(std.heap.page_allocator, "{}", .{randomNumber}) catch unreachable);
     }
 
     pub fn addChild(self: *const Node, child: Node) void {

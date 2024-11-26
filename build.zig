@@ -18,6 +18,14 @@ pub fn build(b: *std.Build) !void {
     });
     lib.root_module.addImport("zframe", zframe_mod);
 
+    const wasm_analyzer_optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
+    const wasm_analyzer = b.dependency("wasm-binary-analyzer", .{
+        .target = target,
+        .optimize = wasm_analyzer_optimize,
+    });
+    lib.root_module.addImport("wasm-binary-analyzer", wasm_analyzer.module("wasm-binary-analyzer"));
+    zframe_mod.addImport("wasm-binary-analyzer", wasm_analyzer.module("wasm-binary-analyzer"));
+
     // const run_cmd = b.addRunArtifact(exe);
 
     // run_cmd.step.dependOn(b.getInstallStep());

@@ -1,5 +1,6 @@
 //! This module provides structures and functions for
 const std = @import("std");
+const wasmBinaryAnalyzer = @import("wasm-binary-analyzer");
 const wasm = std.wasm;
 
 /// WebAssembly wrapper
@@ -11,6 +12,16 @@ pub const WebAssembly = struct {
     handler: JsHandler,
 
     pub fn init(filename: []const u8, handler: JsHandler) WebAssembly {
+        var buf: [4096]u8 = undefined;
+        const wasm_path = std.fmt.allocPrint(std.heap.page_allocator, "zig-out/html/api/{s}", .{filename}) catch @panic("failed to format string");
+        const file = std.fs.cwd().openFile(wasm_path, .{}) catch @panic("failed to open webassebmly file");
+        defer file.close();
+        const size = file.readAll(&buf);
+
+        var Wasm = wasmBinaryAnalyzer.init(std.heap.page_allocator.dupe(u8, buf[0..size]) catch unreachable, size);
+        if (Wasm.analyzeSection(.Memory)) |mem| {
+            std.debug.print("mem info: {any}\n", .{mem[0]});
+        } else |_| {}
         return .{
             .filename = filename,
             .env = wasm.Memory{
@@ -49,26 +60,39 @@ pub const JsHandler = struct {
     err: ?JsWrapper = null,
 };
 
-pub const Events = enum {
-    click,
-    keydown,
-    keyup,
-    mousedown,
-    mouseup,
-    mousemove,
-    mouseover,
-    mouseout,
-    onLoad,
-    onUnload,
-    focus,
-    blur,
-    submit,
-    reset,
-    change,
-    resize,
-    abort,
-    Error,
-    load,
+pub const EventListener = struct {
+    target: EventTypes,
+    content: Loader,
+    options: ?Options = null,
+    pub const EventTypes = enum {
+        click,
+        keydown,
+        keyup,
+        mousedown,
+        mouseup,
+        mousemove,
+        mouseover,
+        mouseout,
+        onLoad,
+        onUnload,
+        focus,
+        blur,
+        submit,
+        reset,
+        change,
+        resize,
+        abort,
+        Error,
+        load,
+    };
+    pub const Options = enum {
+        capture,
+        once,
+        passive,
+        signal,
+        useCapture,
+        wantsUntrusted, // firefox only
+    };
 };
 
 const loadContents = enum {
