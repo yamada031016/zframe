@@ -10,17 +10,11 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
 
-    // const zframe = b.createModule(.{ .root_source_file = b.path("../../src/zframe.zig") });
-    // exe.root_module.addImport("zframe", zframe);
-    const zframe_opt = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
-    const zframe = b.dependency("zframe", .{
-        .target = target,
-        .optimize = zframe_opt,
-    });
-    exe.root_module.addImport("zframe", zframe.module("zframe"));
+    const zframe = b.createModule(.{ .root_source_file = b.path("../../src/zframe.zig") });
+    exe.root_module.addImport("zframe", zframe);
 
     const components = b.createModule(.{ .root_source_file = b.path("src/components/components.zig") });
-    components.addImport("zframe", zframe.module("zframe"));
+    components.addImport("zframe", zframe);
     components.addImport("components", components);
     exe.root_module.addImport("components", components);
 
@@ -46,7 +40,6 @@ pub fn build(b: *std.Build) !void {
     // when generating html file, also generate unique hash value (from zig file metadata ?).
     // only in case of hash values are changed, delete old html files.
     cwd.makeDir("zig-out") catch {};
-    cwd.makeDir("zig-out/webcomponents") catch {};
     cwd.makeDir("zig-out/html") catch {
         var output_dir = try cwd.openDir("zig-out/html", .{ .iterate = true });
         defer output_dir.close();
@@ -72,7 +65,7 @@ pub fn build(b: *std.Build) !void {
     try html_dir.chmod(0o777);
     defer html_dir.close();
 
-    try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe.module("zframe") }, .{ "components", components } });
+    try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe }, .{ "components", components } });
 
     try wasm_autobuild(b, allocator, html_dir);
 
@@ -194,9 +187,8 @@ fn wasm_autobuild(b: *std.Build, allocator: std.mem.Allocator, root_dir: std.fs.
                 wasm_api.rdynamic = true;
                 wasm_api.stack_size = std.wasm.page_size;
                 wasm_api.entry = .disabled;
-                // wasm_api.enable_wasmtime = true;
-                // wasm_api.initial_memory = std.wasm.page_size * 2;
-                // wasm_api.max_memory = std.wasm.page_size * 2;
+                wasm_api.initial_memory = std.wasm.page_size * 2;
+                wasm_api.max_memory = std.wasm.page_size * 2;
 
                 const file_name = try std.fmt.allocPrint(std.heap.page_allocator, "{s}.wasm", .{std.fs.path.stem(file.path)});
                 // const wasm_install =b.addInstallArtifact(wasm_api, .{ .dest_dir = .default, .dest_sub_path=file_name});

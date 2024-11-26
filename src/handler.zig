@@ -1,6 +1,6 @@
 //! This module provides structures and functions for
 const std = @import("std");
-const wasmBinaryAnalyzer = @import("wasm-binary-analyzer");
+const wasmBinaryAnalyzer = @import("wasm-binary-analyzer/wasm.zig").Wasm;
 const wasm = std.wasm;
 
 /// WebAssembly wrapper
@@ -16,19 +16,18 @@ pub const WebAssembly = struct {
         const wasm_path = std.fmt.allocPrint(std.heap.page_allocator, "zig-out/html/api/{s}", .{filename}) catch @panic("failed to format string");
         const file = std.fs.cwd().openFile(wasm_path, .{}) catch @panic("failed to open webassebmly file");
         defer file.close();
-        const size = file.readAll(&buf);
+
+        const size = file.readAll(&buf) catch unreachable;
 
         var Wasm = wasmBinaryAnalyzer.init(std.heap.page_allocator.dupe(u8, buf[0..size]) catch unreachable, size);
-        if (Wasm.analyzeSection(.Memory)) |mem| {
-            std.debug.print("mem info: {any}\n", .{mem[0]});
-        } else |_| {}
+        const mem = Wasm.analyzeSection(.Memory) catch unreachable;
         return .{
             .filename = filename,
             .env = wasm.Memory{
                 .limits = .{
                     .flags = 0,
-                    .min = 256,
-                    .max = 256,
+                    .min = mem.min_size,
+                    .max = mem.max_size,
                 },
             },
             .handler = handler,
