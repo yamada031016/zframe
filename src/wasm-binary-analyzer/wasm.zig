@@ -32,7 +32,6 @@ pub const Wasm = struct {
         for (0..@intFromEnum(sec)) |id| {
             // std.debug.print("before: {}:{any}\n", .{ (id), self.data[self.pos .. self.pos + 20] });
             if (self.getSize(@enumFromInt(id))) |section| {
-                std.debug.print("{any} found!\n", .{@as(Section, @enumFromInt(id))});
                 self.pos += section.size + 1 + section.byte_width;
             } else |err| {
                 switch (err) {
@@ -40,11 +39,6 @@ pub const Wasm = struct {
                     else => unreachable,
                 }
             }
-        }
-        if (@intFromEnum(sec) == self.data[self.pos]) {
-            std.debug.print("Finaly,  {any} found!\n", .{sec});
-        } else {
-            std.debug.print("hoge: {}\n", .{self.data[self.pos]});
         }
     }
 
@@ -111,7 +105,6 @@ pub const Wasm = struct {
         switch (sec) {
             .Type => {
                 const cnt = try self.calcLEB128Data(); // number of function types
-                std.debug.print("\nFunction types found: {}\n", .{cnt});
                 var _typeInfo: [32]s.TypeSecInfo = undefined;
                 for (0..cnt) |j| {
                     _ = try self.calcLEB128Data(); // expect 60: indicate function type below.
@@ -158,12 +151,10 @@ pub const Wasm = struct {
                     .min_size = mem_min_size,
                     .max_size = mem_max_size,
                 };
-                std.debug.print("Memory size: {} to {}\n", .{ mem_min_size, mem_max_size });
                 return _mem;
             },
             .Import => {
                 const import_count = try self.calcLEB128Data();
-                std.debug.print("\nImports found: {}\n", .{import_count});
                 for (0..import_count) |_| {
                     const module_name_length = try self.calcLEB128Data();
                     const module_name = name: {
@@ -191,7 +182,6 @@ pub const Wasm = struct {
             },
             .Export => {
                 const export_count = try self.calcLEB128Data();
-                std.debug.print("\nExports found: {}\n", .{export_count});
                 for (0..export_count) |_| {
                     const export_name_length = try self.calcLEB128Data();
                     const export_name = name: {

@@ -1,4 +1,4 @@
 const test = (obj) => {
   var res = obj.instance.exports.one()
-  alert(res)
+  console.log(res)
 }

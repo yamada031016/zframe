@@ -332,10 +332,6 @@ pub const Link = struct {
 };
 
 /// This structure represents Web Components's custom element.
-/// usecase
-/// const custom = createNode(.custom);
-/// const custom_button = custom.setId("custom-button");
-/// custom_button.init(.{})
 pub const Custom = struct {
     template: ?[]u8 = null,
 };
