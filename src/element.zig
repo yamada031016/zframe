@@ -90,18 +90,18 @@ pub const PlaneElement = struct {
     tag: Tag,
     template: ?[]u8 = null,
 
-    accesskey: ?u8 = null,
+    accesskey: ?[]u8 = null,
     contenteditable: ?bool = null,
     dir: ?Directionality = null,
     draggable: ?bool = null,
     hidden: ?bool = null,
-    itemprop: ?[]const u8 = null,
-    lang: ?[]const u8 = null,
-    role: ?[]const u8 = null,
-    slot: ?[]const u8 = null,
+    itemprop: ?[]u8 = null,
+    lang: ?[]u8 = null,
+    role: ?[]u8 = null,
+    slot: ?[]u8 = null,
     spellcheck: ?bool = null,
-    style: ?[]const u8 = null,
-    title: ?[]const u8 = null,
+    style: ?[]u8 = null,
+    title: ?[]u8 = null,
     translate: ?bool = null,
 };
 
@@ -163,17 +163,17 @@ pub const Image = struct {
     alt: ?[]u8 = null,
     width: ?u16 = null,
     height: ?u16 = null,
-    attributionsrc: ?[]const u8 = null,
+    attributionsrc: ?[]u8 = null,
     crossorigin: ?Crossorigin = null,
     decoding: ?Decoding = null,
-    elementtiming: ?[]const u8 = null,
+    elementtiming: ?[]u8 = null,
     fetchpriority: ?fetchPriority = null,
     ismap: ?bool = null,
     loading: ?Loading = null,
     referrerpolicy: ?referrerPolicy = null,
-    sizes: ?[]const u8 = null,
-    srcset: ?[]const u8 = null,
-    usemap: ?[]const u8 = null,
+    sizes: ?[]u8 = null,
+    srcset: ?[]u8 = null,
+    usemap: ?[]u8 = null,
 };
 
 /// This structure represents anchor tag without any auto-optimization.
@@ -208,17 +208,32 @@ pub const HyperLink = struct {
         top,
         unfencedTop,
     };
+    const relValue = enum {
+        alternate,
+        author,
+        bookmark,
+        external,
+        help,
+        license,
+        next,
+        nofollow,
+        noreferrer,
+        noopener,
+        prev,
+        search,
+        tag,
+    };
     template: ?[]u8 = null,
     href: ?[]u8 = null,
 
     target: ?Target = null,
-    download: ?[]const u8 = null,
-    rel: ?[]const u8 = null,
-    hreflang: ?[]const u8 = null,
-    ping: ?[]const u8 = null,
+    download: ?[]u8 = null,
+    rel: ?relValue = null,
+    hreflang: ?[]u8 = null,
+    ping: ?[]u8 = null,
     referrerpolicy: ?referrerPolicy = null,
-    type: ?[]const u8 = null,
-    attributionsrc: ?[]const u8 = null,
+    mimeType: ?[]u8 = null,
+    attributionsrc: ?[]u8 = null,
 };
 
 /// This structure represents meta tag.
@@ -315,19 +330,19 @@ pub const Link = struct {
     rel: ?[]u8 = null,
     href: ?[]u8 = null,
 
-    as: ?[]const u8 = null,
-    blocking: ?[]const u8 = null,
+    as: ?[]u8 = null,
+    blocking: ?[]u8 = null,
     crossorigin: ?Crossorigin = null,
     disabled: ?bool = null, // for rel="stylesheet" only
     fetchpriority: ?fetchPriority = null,
-    hreflang: ?[]const u8 = null,
-    imagesizes: ?[]const u8 = null, // for rel="preload" and as="image" only
-    imagesrcset: ?[]const u8 = null, // for rel="preload" and as="image" only
-    integrity: ?[]const u8 = null, // for rel="stylesheet" or "preload" or "modulepreload"
-    media: ?[]const u8 = null,
+    hreflang: ?[]u8 = null,
+    imagesizes: ?[]u8 = null, // for rel="preload" and as="image" only
+    imagesrcset: ?[]u8 = null, // for rel="preload" and as="image" only
+    integrity: ?[]u8 = null, // for rel="stylesheet" or "preload" or "modulepreload"
+    media: ?[]u8 = null,
     referrerpolicy: ?referrerPolicy = null,
-    sizes: ?[]const u8 = null,
-    title: ?[]const u8 = null,
+    sizes: ?[]u8 = null,
+    title: ?[]u8 = null,
     type: ?typeOfContent = null,
 };
 

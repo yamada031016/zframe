@@ -1,6 +1,7 @@
 const std = @import("std");
 const mem = std.mem;
 const z = @import("ssg-zig");
+const htmlZig = @import("html.zig");
 const element = @import("element.zig");
 const Element = element.Element;
 const n = @import("node.zig");
@@ -143,14 +144,15 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
                 }
             } else if (mem.eql(u8, "head", tagName)) {
                 var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .read = true });
+                defer head_output.close();
                 var head_writer = head_output.writer();
                 try head_writer.print("\n<head>", .{});
                 var head_buf: []u8 = "";
                 for (node.children.items) |child| {
-                    head_buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}{s}", .{ head_buf, try parse(&child, head_buf) });
+                    head_buf = try parse(&child, head_buf);
                 }
-                head_output.close();
-                return try std.heap.page_allocator.dupe(u8, head_buf);
+                try head_writer.print("<head>{s}</head>", .{head_buf});
+                return "";
             } else {
                 buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<{s}", .{ buf, tagName });
                 const nodeInfo = @typeInfo(@TypeOf(node.*));
@@ -232,19 +234,32 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
 inline fn parseElement(elem: anytype) ![]u8 {
     const elemInfo = @typeInfo(@TypeOf(elem));
     var buf: []u8 = "";
+    var isClosed = false;
     inline for (elemInfo.Struct.fields) |field| {
         if (@hasField(@TypeOf(elem), field.name)) {
             const fieldValue = @field(elem, field.name);
-            if ((@TypeOf(fieldValue)) == ?[]u8) {
-                if (std.mem.eql(u8, "template", field.name)) {
-                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}>{s}", .{ buf, fieldValue orelse "" });
-                } else {
-                    if (fieldValue) |f| {
-                        buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{s}\"{s}", .{ field.name, f, buf });
+            if (@typeInfo(@TypeOf(fieldValue)) == .Optional) {
+                if (fieldValue) |f| {
+                    switch (@typeInfo(@TypeOf(f))) {
+                        .Pointer, .Array => {
+                            if (std.mem.eql(u8, "template", field.name)) {
+                                buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}>{s}", .{ buf, fieldValue orelse "" });
+                                isClosed = true;
+                            } else {
+                                buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{s}\"{s}", .{ field.name, f, buf });
+                            }
+                        },
+                        .Bool => buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{}\"{s}", .{ field.name, f, buf }),
+                        .Int => buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{d}\"{s}", .{ field.name, f, buf }),
+                        .EnumLiteral, .Enum => buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{s}\"{s}", .{ field.name, @tagName(f), buf }),
+                        else => std.debug.print("{any}\n", .{f}),
                     }
                 }
             }
         }
+    }
+    if (!isClosed) {
+        buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}>", .{buf});
     }
     return std.heap.page_allocator.dupe(u8, buf);
 }

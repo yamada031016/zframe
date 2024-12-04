@@ -78,7 +78,11 @@ pub const Node = struct {
                         } else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(plane.*), field.name)) {
-                                    @field(plane, field.name) = @constCast(@field(args, field.name));
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(plane, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => @field(plane, field.name) = @field(args, field.name),
+                                        else => @field(plane, field.name) = @field(args, field.name),
+                                    }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
@@ -99,7 +103,11 @@ pub const Node = struct {
                         if (s.is_tuple) {} else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(image.*), field.name)) {
-                                    @field(image, field.name) = @constCast(@field(args, field.name));
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(image, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => @field(image, field.name) = @field(args, field.name),
+                                        else => @field(image, field.name) = @field(args, field.name),
+                                    }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
@@ -160,7 +168,11 @@ pub const Node = struct {
                         } else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(hyperlink.*), field.name)) {
-                                    @field(hyperlink, field.name) = @constCast(@field(args, field.name));
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(hyperlink, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => @field(hyperlink, field.name) = @field(args, field.name),
+                                        else => @field(hyperlink, field.name) = @field(args, field.name),
+                                    }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
@@ -197,7 +209,11 @@ pub const Node = struct {
                         } else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(link.*), field.name)) {
-                                    @field(link, field.name) = @constCast(@field(args, field.name));
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(link, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => @field(link, field.name) = @field(args, field.name),
+                                        else => @field(link, field.name) = @field(args, field.name),
+                                    }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
@@ -237,7 +253,11 @@ pub const Node = struct {
                         } else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(meta.*), field.name)) {
-                                    @field(meta, field.name) = @constCast(@field(args, field.name));
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(meta, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => @field(meta, field.name) = @field(args, field.name),
+                                        else => @field(meta, field.name) = @field(args, field.name),
+                                    }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
