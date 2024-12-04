@@ -171,6 +171,8 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
                     .image => |i| try parseElement(i),
                     .hyperlink => |h| try parseElement(h),
                     .link => |l| try parseElement(l),
+                    .form => |l| try parseElement(l),
+                    .input => |l| try parseElement(l),
                     else => unreachable,
                 };
                 buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ buf, elem_buf });
@@ -252,7 +254,7 @@ inline fn parseElement(elem: anytype) ![]u8 {
                         .Bool => buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{}\"{s}", .{ field.name, f, buf }),
                         .Int => buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{d}\"{s}", .{ field.name, f, buf }),
                         .EnumLiteral, .Enum => buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}=\"{s}\"{s}", .{ field.name, @tagName(f), buf }),
-                        else => std.debug.print("{any}\n", .{f}),
+                        else => {},
                     }
                 }
             }

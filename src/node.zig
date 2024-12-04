@@ -208,14 +208,22 @@ pub const Node = struct {
                             }
                         } else {
                             inline for (s.fields) |field| {
+                                // if (@hasField(@TypeOf(link.*), field.name)) {
                                 if (@hasField(@TypeOf(link.*), field.name)) {
                                     switch (@typeInfo(field.type)) {
                                         .Pointer, .Array => @field(link, field.name) = @constCast(@field(args, field.name)),
-                                        .EnumLiteral => @field(link, field.name) = @field(args, field.name),
+                                        .EnumLiteral => {
+                                            // fields with the same name across different elements be mistakenly assigned
+                                            // to fields in all elements that have same field name.
+                                            // Ensure that field types are consistent to avoid mismatches.
+                                            if (@hasField(@typeInfo(@TypeOf(@field(link, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(link, field.name) = @field(args, field.name);
+                                            }
+                                        },
                                         else => @field(link, field.name) = @field(args, field.name),
                                     }
                                 } else {
-                                    self.fatal(NodeError.invalidArgs, args);
+                                    self.fatal(NodeError.invalidArgs, field.name);
                                 }
                             }
                         }
@@ -260,6 +268,73 @@ pub const Node = struct {
                                     }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
+                                }
+                            }
+                        }
+                    },
+                    else => self.fatal(NodeError.invalidArgs, args),
+                }
+            },
+            .form => |*form| {
+                switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| {
+                        if (s.is_tuple) {
+                            inline for (args) |arg| {
+                                switch (@typeInfo(@TypeOf(arg))) {
+                                    .Struct => {
+                                        if (@TypeOf(arg) == Node) {
+                                            tmp.children.append(arg) catch |e| switch (e) {
+                                                else => @panic("failed to append children"),
+                                            };
+                                        }
+                                    },
+                                    else => self.fatal(NodeError.invalidArgs, args),
+                                }
+                            }
+                        } else {
+                            inline for (s.fields) |field| {
+                                if (@hasField(@TypeOf(form.*), field.name)) {
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(form, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => {
+                                            // fields with the same name across different elements be mistakenly assigned
+                                            // to fields in all elements that have same field name.
+                                            // Ensure that field types are consistent to avoid mismatches.
+                                            if (@hasField(@typeInfo(@TypeOf(@field(form, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(form, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(form, field.name) = @field(args, field.name),
+                                    }
+                                } else {
+                                    self.fatal(NodeError.invalidArgs, field.name);
+                                }
+                            }
+                        }
+                    },
+                    else => self.fatal(NodeError.invalidArgs, args),
+                }
+            },
+            .input => |*input| {
+                switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| {
+                        if (s.is_tuple) {} else {
+                            inline for (s.fields) |field| {
+                                if (@hasField(@TypeOf(input.*), field.name)) {
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(input, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => {
+                                            // fields with the same name across different elements be mistakenly assigned
+                                            // to fields in all elements that have same field name.
+                                            // Ensure that field types are consistent to avoid mismatches.
+                                            if (@hasField(@typeInfo(@TypeOf(@field(input, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(input, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(input, field.name) = @field(args, field.name),
+                                    }
+                                } else {
+                                    self.fatal(NodeError.invalidArgs, field.name);
                                 }
                             }
                         }

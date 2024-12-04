@@ -89,14 +89,14 @@ fn index() node.Node {
                     // .forName="name"
                 }),
                 node.createNode(.input).init(.{
-                    // .type = "text",
-                    // .name = "name",
-                    // .required = true,
+                    .type = .text,
+                    .name = "name",
+                    .required = true,
                 }),
             }),
             node.createNode(.input).init(.{
-                // .type = "submit",
-                // .value = "subscribe!",
+                .type = .submit,
+                .value = "subscribe!",
             }),
         }),
     });
