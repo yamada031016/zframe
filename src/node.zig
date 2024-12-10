@@ -169,8 +169,16 @@ pub const Node = struct {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(hyperlink.*), field.name)) {
                                     switch (@typeInfo(field.type)) {
-                                        .Pointer, .Array => @field(hyperlink, field.name) = @constCast(@field(args, field.name)),
-                                        .EnumLiteral => @field(hyperlink, field.name) = @field(args, field.name),
+                                        .Pointer, .Array => {
+                                            if (@typeInfo(@TypeOf(@field(hyperlink, field.name))).Optional.child == []u8) {
+                                                @field(hyperlink, field.name) = @constCast(@field(args, field.name));
+                                            }
+                                        },
+                                        .EnumLiteral => {
+                                            if (@hasField(@typeInfo(@TypeOf(@field(hyperlink, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(hyperlink, field.name) = @field(args, field.name);
+                                            }
+                                        },
                                         else => @field(hyperlink, field.name) = @field(args, field.name),
                                     }
                                 } else {
@@ -340,6 +348,92 @@ pub const Node = struct {
                         }
                     },
                     else => self.fatal(NodeError.invalidArgs, args),
+                }
+            },
+            .tablecol => |*tablecol| {
+                switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| {
+                        if (s.is_tuple) {} else {
+                            inline for (s.fields) |field| {
+                                if (@hasField(@TypeOf(tablecol.*), field.name)) {
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(tablecol, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => {
+                                            if (@hasField(@typeInfo(@TypeOf(@field(tablecol, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(tablecol, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(tablecol, field.name) = @field(args, field.name),
+                                    }
+                                } else {
+                                    self.fatal(NodeError.invalidArgs, field.name);
+                                }
+                            }
+                        }
+                    },
+                    else => self.fatal(NodeError.invalidArgs, args),
+                }
+            },
+            .th => |*th| {
+                switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| {
+                        if (s.is_tuple) {} else {
+                            inline for (s.fields) |field| {
+                                if (@hasField(@TypeOf(th.*), field.name)) {
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(th, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => {
+                                            if (@hasField(@typeInfo(@TypeOf(@field(th, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(th, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(th, field.name) = @field(args, field.name),
+                                    }
+                                } else {
+                                    self.fatal(NodeError.invalidArgs, field.name);
+                                }
+                            }
+                        }
+                    },
+                    else => |e| {
+                        if (e == .Array or e == .Pointer) {
+                            // expect string
+                            th.template = @constCast(args);
+                        } else {
+                            self.fatal(NodeError.invalidArgs, args);
+                        }
+                    },
+                }
+            },
+            .td => |*td| {
+                switch (@typeInfo(@TypeOf(args))) {
+                    .Struct => |s| {
+                        if (s.is_tuple) {} else {
+                            inline for (s.fields) |field| {
+                                if (@hasField(@TypeOf(td.*), field.name)) {
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(td, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => {
+                                            if (@hasField(@typeInfo(@TypeOf(@field(td, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(td, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(td, field.name) = @field(args, field.name),
+                                    }
+                                } else {
+                                    self.fatal(NodeError.invalidArgs, field.name);
+                                }
+                            }
+                        }
+                    },
+                    else => |e| {
+                        if (e == .Array or e == .Pointer) {
+                            // expect string
+                            td.*.template = @constCast(args);
+                        } else {
+                            self.fatal(NodeError.invalidArgs, args);
+                        }
+                    },
                 }
             },
             .custom => |*custom| {

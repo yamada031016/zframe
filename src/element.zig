@@ -11,6 +11,9 @@ pub fn createElement(comptime tagName: Tag) Element {
         .meta => Element{ .meta = Meta{} },
         .form => Element{ .form = Form{} },
         .input => Element{ .input = Input{} },
+        .col, .colgroup => Element{ .tablecol = TableCol{} },
+        .th => Element{ .th = TableHead{} },
+        .td => Element{ .td = TableData{} },
         .custom => Element{ .custom = Custom{} },
         else => Element{
             .plane = PlaneElement{
@@ -30,6 +33,9 @@ pub const ElementType = enum {
     meta,
     form,
     input,
+    tablecol,
+    th,
+    td,
     custom,
 };
 
@@ -42,6 +48,9 @@ pub const Element = union(ElementType) {
     meta: Meta,
     form: Form,
     input: Input,
+    tablecol: TableCol,
+    th: TableHead,
+    td: TableData,
     custom: Custom,
 
     const TemplateError = error{
@@ -55,6 +64,7 @@ pub const Element = union(ElementType) {
         switch (self.*) {
             .plane => |p| return p.tag.asText(),
             .hyperlink => return "a",
+            .tablecol => return "col", // or "colgroup"
             else => return @tagName(self.*),
         }
     }
@@ -64,6 +74,8 @@ pub const Element = union(ElementType) {
             .plane => |*elem| return if (elem.template) |e| e else ElementError.TemplateNotSetting,
             .hyperlink => |*elem| return if (elem.template) |e| e else ElementError.TemplateNotSetting,
             .custom => |*elem| return if (elem.template) |e| e else ElementError.TemplateNotSetting,
+            .th => |*elem| return if (elem.template) |e| e else ElementError.TemplateNotSetting,
+            .td => |*elem| return if (elem.template) |e| e else ElementError.TemplateNotSetting,
             else => return ElementError.TemplateNotSupport,
         }
     }
@@ -73,21 +85,6 @@ pub const Element = union(ElementType) {
 
 /// This structure represents Generic HTML Element such as h1, p, and so on.
 pub const PlaneElement = struct {
-    pub const attributes = [_][]const u8{
-        "accesskey",
-        "contenteditable",
-        "dir",
-        "draggable",
-        "hidden",
-        "itemprop",
-        "lang",
-        "role",
-        "slot",
-        "spellcheck",
-        "style",
-        "title",
-        "translate",
-    };
     const Directionality = enum { leftToRight, RightToLeft, Auto };
 
     tag: Tag,
@@ -111,24 +108,6 @@ pub const PlaneElement = struct {
 /// This structure represents image tag without any auto-optimization.
 // add isValid() for check srcset, sizes...
 pub const Image = struct {
-    pub const attributes = [_][]const u8{
-        "src",
-        "alt",
-        "width",
-        "height",
-        "attributionsrc",
-        "crossorigin",
-        "decoding",
-        "elementtiming",
-        "fetchpriority",
-        "ismap",
-        "loading",
-        "referrerpolicy",
-        "sizes",
-        "srcset",
-        "usemap",
-    };
-
     const Crossorigin = enum {
         anonymous,
         useCredentials,
@@ -181,18 +160,6 @@ pub const Image = struct {
 
 /// This structure represents anchor tag without any auto-optimization.
 pub const HyperLink = struct {
-    pub const attributes = [_][]const u8{
-        "href",
-        "target",
-        "download",
-        "rel",
-        "hreflang",
-        "ping",
-        "referrerpolicy",
-        "type",
-        "attributionsrc",
-    };
-
     const referrerPolicy = enum {
         noReferrer,
         noReferrerWhenDowngrade,
@@ -276,25 +243,6 @@ pub const Meta = struct {
 
 /// This structure represents link tag.
 pub const Link = struct {
-    pub const attributes = [_][]const u8{
-        "as",
-        "blocking",
-        "crossorigin",
-        "disabled", // for rel="stylesheet" only
-        "fetchpriority",
-        "href",
-        "hreflang",
-        "imagesizes", // for rel="preload" and as="image" only
-        "imagesrcset", // for rel="preload" and as="image" only
-        "integrity", // for rel="stylesheet" or "preload" or "modulepreload"
-        "media",
-        "referrerpolicy",
-        "rel",
-        "sizes",
-        "title",
-        "type",
-    };
-
     // this attribute is required when rel="preload", optional when rel="modulepreload"
     const typeOfContent = enum {
         audio,
@@ -454,4 +402,24 @@ pub const Input = struct {
     step: ?u16 = null,
     value: ?[]u8 = null,
     width: ?u16 = null,
+};
+
+pub const TableCol = struct {
+    span: ?u8 = null,
+};
+
+pub const TableHead = struct {
+    template: ?[]u8 = null,
+    abbr: ?[]u8 = null,
+    colspan: ?u8 = null,
+    headers: ?[]u8 = null,
+    rowspan: ?u8 = null,
+    scope: ?enum { row, col, rowgroup, colgroup } = null,
+};
+
+pub const TableData = struct {
+    colspan: ?u8 = null,
+    headers: ?[]u8 = null,
+    rowspan: ?u8 = null,
+    template: ?[]u8 = null,
 };

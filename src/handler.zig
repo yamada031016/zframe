@@ -43,7 +43,7 @@ pub const WebAssembly = struct {
         const js = try std.fmt.allocPrint(
             allocator,
             "const env={{memory:new WebAssembly.Memory({{initial:{},maximum:{}}})}};var memory=env.memory;WebAssembly.instantiateStreaming(fetch('api/{s}'),{{env}}).then({s})",
-            .{ self.env.limits.min, self.env.limits.max, self.filename, then },
+            .{ self.env.limits.max, self.env.limits.max, self.filename, then },
         );
         return js;
     }

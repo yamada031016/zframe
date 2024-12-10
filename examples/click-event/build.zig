@@ -185,10 +185,11 @@ fn wasm_autobuild(b: *std.Build, allocator: std.mem.Allocator, root_dir: std.fs.
                     .optimize = .ReleaseSmall,
                 });
                 wasm_api.rdynamic = true;
+                // wasm_api.export_memory = false;
                 wasm_api.stack_size = std.wasm.page_size;
                 wasm_api.entry = .disabled;
-                wasm_api.initial_memory = std.wasm.page_size * 2;
-                wasm_api.max_memory = std.wasm.page_size * 2;
+                // wasm_api.initial_memory = std.wasm.page_size * 2;
+                // wasm_api.max_memory = std.wasm.page_size * 2;
 
                 const file_name = try std.fmt.allocPrint(std.heap.page_allocator, "{s}.wasm", .{std.fs.path.stem(file.path)});
                 // const wasm_install =b.addInstallArtifact(wasm_api, .{ .dest_dir = .default, .dest_sub_path=file_name});
