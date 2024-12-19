@@ -60,6 +60,30 @@ pub const TypeSecInfo = struct {
             };
         }
     };
+
+    pub fn serialize(self: *const TypeSecInfo) ![]u8 {
+        var buf: [1024]u8 = undefined;
+        var buf_pos: usize = 0;
+        buf[buf_pos] = @intCast(self.args_type.len);
+        buf_pos += 1;
+        for (self.args_type) |args| {
+            const _args = args.toString();
+            buf[buf_pos] = @intCast(_args.len);
+            buf_pos += 1;
+            @memcpy(buf[buf_pos..], _args);
+            buf_pos += _args.len;
+        }
+        buf[buf_pos] = @intCast(self.result_type.len);
+        buf_pos += 1;
+        for (self.result_type) |result| {
+            const _result = result.toString();
+            buf[buf_pos] = @intCast(_result.len);
+            buf_pos += 1;
+            @memcpy(buf[buf_pos..], _result);
+            buf_pos += _result.len;
+        }
+        return try std.heap.wasm_allocator.dupe(u8, buf[0..buf_pos]);
+    }
 };
 
 pub const MemorySecInfo = struct {
@@ -69,7 +93,7 @@ pub const MemorySecInfo = struct {
 
 pub const ImportSecInfo = struct {
     module_name: []const u8,
-    target_name: []const u8,
+    import_name: []const u8,
     target_section: u32,
     target_section_id: u32,
 };

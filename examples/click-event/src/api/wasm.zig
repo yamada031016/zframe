@@ -67,8 +67,8 @@ pub const Wasm = struct {
     pub fn analyzeSection(self: *Wasm, comptime sec: Section) !switch (sec) {
         .Type => []s.TypeSecInfo,
         .Memory => s.MemorySecInfo,
-        // .Import => []s.ImportSecInfo,
-        // .Export => []s.ExportSecInfo,
+        .Import => []s.ImportSecInfo,
+        .Export => []s.ExportSecInfo,
         else => void,
     } {
         // std.debug.print("{any}\n", .{self.data[0..10]});
@@ -77,16 +77,15 @@ pub const Wasm = struct {
 
         const section = self.getSize(sec) catch |err| switch (err) {
             WasmError.SectionNotFound => {
-                // std.debug.print("{s} not found.\n", .{sec.asText()});
                 switch (sec) {
-                    .Type => {
-                        const dummy: [1]s.TypeSecInfo = undefined;
-                        return try std.heap.page_allocator.dupe(s.TypeSecInfo, dummy[0..0]);
-                    },
-                    .Memory => {
-                        const dummy: s.MemorySecInfo = undefined;
-                        return dummy;
-                    },
+                    // .Type => {
+                    //     const dummy: [1]s.TypeSecInfo = undefined;
+                    //     return try std.heap.page_allocator.dupe(s.TypeSecInfo, dummy[0..0]);
+                    // },
+                    // .Memory => {
+                    //     const dummy: s.MemorySecInfo = undefined;
+                    //     return dummy;
+                    // },
                     // .Import => {
                     //     const dummy: [1]s.ImportSecInfo = undefined;
                     //     return try std.heap.page_allocator.dupe(s.ImportSecInfo, dummy[0..0]);
@@ -154,92 +153,103 @@ pub const Wasm = struct {
                 return _mem;
             },
             .Import => {
-                // const import_count = try self.calcLEB128Data();
-                // for (0..import_count) |_| {
-                //     const module_name_length = try self.calcLEB128Data();
-                //     const module_name = name: {
-                //         var tmp: [32]u8 = undefined;
-                //         for (self.data[self.pos .. self.pos + module_name_length], 0..) |char, i| {
-                //             tmp[i] = char;
-                //             self.pos += 1;
-                //         }
-                //         break :name &tmp;
-                //     };
-                //     const target_name_length = try self.calcLEB128Data();
-                //     const target_name = name: {
-                //         var tmp: [32]u8 = undefined;
-                //         for (self.data[self.pos .. self.pos + target_name_length], 0..) |char, i| {
-                //             tmp[i] = char;
-                //             self.pos += 1;
-                //         }
-                //         break :name &tmp;
-                //     };
-                //     // std.debug.print("{s}.{s}\t\t\t", .{ module_name, target_name });
-                //     // const target_section = try self.calcLEB128Data();
-                //     // const target_section_id = try self.calcLEB128Data();
-                //     // std.debug.print("{s}[{}]\n", .{ Section.init(target_section + 1).asText(), target_section_id });
-                // }
+                var importInfo: [32]s.ImportSecInfo = undefined;
+                const import_count = try self.calcLEB128Data();
+                for (0..import_count) |cnt| {
+                    const module_name_length = try self.calcLEB128Data();
+                    const module_name = name: {
+                        var tmp: [32]u8 = undefined;
+                        for (self.data[self.pos .. self.pos + module_name_length], 0..) |char, i| {
+                            tmp[i] = char;
+                            self.pos += 1;
+                        }
+                        break :name &tmp;
+                    };
+                    const import_name_length = try self.calcLEB128Data();
+                    const import_name = name: {
+                        var tmp: [32]u8 = undefined;
+                        for (self.data[self.pos .. self.pos + import_name_length], 0..) |char, i| {
+                            tmp[i] = char;
+                            self.pos += 1;
+                        }
+                        break :name &tmp;
+                    };
+                    const target_section = try self.calcLEB128Data();
+                    const target_section_id = try self.calcLEB128Data();
+                    importInfo[cnt] = .{
+                        .module_name = module_name,
+                        .import_name = import_name,
+                        .target_section = target_section,
+                        .target_section_id = target_section_id,
+                    };
+                }
+                return try std.heap.page_allocator.dupe(s.ImportSecInfo, importInfo[0..import_count]);
             },
             .Export => {
+                var exportInfo: [32]s.ExportSecInfo = undefined;
                 const export_count = try self.calcLEB128Data();
-                for (0..export_count) |_| {
-                    // const export_name_length = try self.calcLEB128Data();
-                    // const export_name = name: {
-                    //     var tmp: [32]u8 = undefined;
-                    //     for (self.data[self.pos .. self.pos + export_name_length], 0..) |char, i| {
-                    //         tmp[i] = char;
-                    //         self.pos += 1;
-                    //     }
-                    //     break :name &tmp;
-                    // };
-                    // std.debug.print("{s}\t\t\t", .{export_name});
-                    // const target_section = try self.calcLEB128Data();
-                    // const target_section_id = try self.calcLEB128Data();
-                    // std.debug.print("{s}[{}]\n", .{ Section.init(target_section + 1).asText(), target_section_id });
+                for (0..export_count) |cnt| {
+                    const export_name_length = try self.calcLEB128Data();
+                    const export_name = name: {
+                        var tmp: [32]u8 = undefined;
+                        for (self.data[self.pos .. self.pos + export_name_length], 0..) |char, i| {
+                            tmp[i] = char;
+                            self.pos += 1;
+                        }
+                        break :name &tmp;
+                    };
+                    const target_section = try self.calcLEB128Data();
+                    const target_section_id = try self.calcLEB128Data();
+                    exportInfo[cnt] = .{
+                        .name = export_name,
+                        .target_section = target_section,
+                        .target_section_id = target_section_id,
+                    };
                 }
+                return try std.heap.page_allocator.dupe(s.ExportSecInfo, exportInfo[0..export_count]);
             },
             .Code => {
-                // var tmp = [_]u8{0} ** 4;
-                // for (self.data[self.pos..], 0..) |val, j| {
-                //     tmp[j] = val;
-                //     if (val < 128) {
-                //         self.pos += j + 1; // code count分進める
-                //         break;
-                //     }
-                // }
-                //
-                // const cnt = leb128.decodeLEB128(&tmp); // codeの数
-                // // std.debug.print("{}個のcodeがあります.\n", .{cnt});
-                //
-                // var code: SectionSize = undefined;
-                // for (0..cnt) |i| {
-                //     code = c.getCodeSize(self.data, self.size, self.pos);
-                //     // std.debug.print("({:0>2}) size: {} bytes\n", .{ i + 1, code.size });
-                //     self.pos += code.byte_width;
-                //
-                //     const local_var_cnt = utils.getValCounts(self.data, self.pos);
-                //     const local_var_width = calcWidth: {
-                //         var _cnt = local_var_cnt;
-                //         var j: usize = 1;
-                //         while (_cnt > 128) : (j += 1) {
-                //             _cnt /= 128;
-                //         }
-                //         break :calcWidth j;
-                //     };
-                //     self.pos += local_var_width;
-                //     for (0..local_var_cnt) |_| {
-                //         for (self.data[self.pos..], 1..) |val, k| {
-                //             if (val < 128) {
-                //                 self.pos += k; // ローカル変数のサイズのバイト幅だけ進める(最大u32幅)
-                //                 break;
-                //             }
-                //         }
-                //         self.pos += 1; // valtype分進める
-                //     }
-                //
-                //     // try self.runtime.execute(self.data[self.pos..]);
-                //     self.pos += code.size + code.byte_width;
-                // }
+                var tmp = [_]u8{0} ** 4;
+                for (self.data[self.pos..], 0..) |val, j| {
+                    tmp[j] = val;
+                    if (val < 128) {
+                        self.pos += j + 1; // code count分進める
+                        break;
+                    }
+                }
+
+                const cnt = leb128.decodeLEB128(&tmp); // codeの数
+                std.debug.print("{}個のcodeがあります.\n", .{cnt});
+
+                var code: SectionSize = undefined;
+                for (0..cnt) |i| {
+                    code = c.getCodeSize(self.data, self.size, self.pos);
+                    std.debug.print("({:0>2}) size: {} bytes\n", .{ i + 1, code.size });
+                    self.pos += code.byte_width;
+
+                    const local_var_cnt = utils.getValCounts(self.data, self.pos);
+                    const local_var_width = calcWidth: {
+                        var _cnt = local_var_cnt;
+                        var j: usize = 1;
+                        while (_cnt > 128) : (j += 1) {
+                            _cnt /= 128;
+                        }
+                        break :calcWidth j;
+                    };
+                    self.pos += local_var_width;
+                    for (0..local_var_cnt) |_| {
+                        for (self.data[self.pos..], 1..) |val, k| {
+                            if (val < 128) {
+                                self.pos += k; // ローカル変数のサイズのバイト幅だけ進める(最大u32幅)
+                                break;
+                            }
+                        }
+                        self.pos += 1; // valtype分進める
+                    }
+
+                    // try self.runtime.execute(self.data[self.pos..]);
+                    self.pos += code.size + code.byte_width;
+                }
             },
             else => {},
         }
@@ -249,10 +259,10 @@ pub const Wasm = struct {
     fn execute(self: *Wasm, cnt: usize) !void {
         var code: SectionSize = undefined;
         var first_pos: usize = self.pos; // code sizeの位置を指している
-        // std.debug.print("{any}", .{self.data});
-        for (0..cnt) |_| {
+        std.debug.print("{any}", .{self.data});
+        for (0..cnt) |i| {
             code = c.getCodeSize(self.data, self.size, self.pos);
-            // std.debug.print("({:0>2}) size: {} bytes\n", .{ i + 1, code.size });
+            std.debug.print("({:0>2}) size: {} bytes\n", .{ i + 1, code.size });
             self.pos += code.byte_width;
 
             self.proceedToCodeFunc();

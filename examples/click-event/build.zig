@@ -18,6 +18,11 @@ pub fn build(b: *std.Build) !void {
     components.addImport("components", components);
     exe.root_module.addImport("components", components);
 
+    const api = b.createModule(.{ .root_source_file = b.path("src/api/api.zig") });
+    api.addImport("zframe", zframe);
+    api.addImport("api", api);
+    exe.root_module.addImport("api", api);
+
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
@@ -65,7 +70,7 @@ pub fn build(b: *std.Build) !void {
     try html_dir.chmod(0o777);
     defer html_dir.close();
 
-    try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe }, .{ "components", components } });
+    try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe }, .{ "components", components }, .{ "api", api } });
 
     try wasm_autobuild(b, allocator, html_dir);
 

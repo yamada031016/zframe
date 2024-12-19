@@ -50,6 +50,15 @@ pub const TypeSecInfo = struct {
         wasm_unknown,
         wasm_i32,
         wasm_i64,
+
+        pub fn toString(self: *const TypeEnum) []u8 {
+            return switch (self.*) {
+                .wasm_void => @constCast("void"),
+                .wasm_unknown => unreachable,
+                .wasm_i32 => @constCast("i32"),
+                .wasm_i64 => @constCast("i64"),
+            };
+        }
     };
 };
 
@@ -60,7 +69,7 @@ pub const MemorySecInfo = struct {
 
 pub const ImportSecInfo = struct {
     module_name: []const u8,
-    target_name: []const u8,
+    import_name: []const u8,
     target_section: u32,
     target_section_id: u32,
 };

@@ -134,7 +134,7 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
             buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}>", .{buf});
         },
         else => |elem| {
-            const tagName = node.elem.getTagName();
+            const tagName = elem.getTagName();
             if (mem.eql(u8, "raw", tagName) or mem.eql(u8, "empty", tagName)) {
                 if (elem.plane.template) |temp| {
                     buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}{s}", .{ buf, temp });
@@ -154,31 +154,7 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
                 try head_writer.print("<head>{s}</head>", .{head_buf});
                 return "";
             } else {
-                buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<{s}", .{ buf, tagName });
-                const nodeInfo = @typeInfo(@TypeOf(node.*));
-                inline for (nodeInfo.Struct.fields) |field| {
-                    if (@hasField(@TypeOf(node.*), field.name)) {
-                        const fieldValue = @field(node.*, field.name);
-                        if (@TypeOf(fieldValue) == ?[]u8) {
-                            if (fieldValue) |f| {
-                                buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}=\"{s}\"", .{ buf, field.name, f });
-                            }
-                        }
-                    }
-                }
-                const elem_buf = switch (elem) {
-                    .plane => |p| try parseElement(p),
-                    .image => |i| try parseElement(i),
-                    .hyperlink => |h| try parseElement(h),
-                    .link => |l| try parseElement(l),
-                    .form => |l| try parseElement(l),
-                    .input => |l| try parseElement(l),
-                    .tablecol => |l| try parseElement(l),
-                    .th => |l| try parseElement(l),
-                    .td => |l| try parseElement(l),
-                    else => unreachable,
-                };
-                buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ buf, elem_buf });
+                buf = try parseElement(node, buf);
                 for (node.children.items) |child| {
                     buf = try parse(&child, try std.heap.page_allocator.dupe(u8, buf));
                 }
@@ -238,7 +214,38 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
     return try std.heap.page_allocator.dupe(u8, buf);
 }
 
-inline fn parseElement(elem: anytype) ![]u8 {
+fn parseElement(node: *const n.Node, buffer: []u8) ![]u8 {
+    const tagName = node.elem.getTagName();
+    var buf = buffer;
+    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<{s}", .{ buf, tagName });
+    const nodeInfo = @typeInfo(@TypeOf(node.*));
+    inline for (nodeInfo.Struct.fields) |field| {
+        if (@hasField(@TypeOf(node.*), field.name)) {
+            const fieldValue = @field(node.*, field.name);
+            if (@TypeOf(fieldValue) == ?[]u8) {
+                if (fieldValue) |f| {
+                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}=\"{s}\"", .{ buf, field.name, f });
+                }
+            }
+        }
+    }
+    const elem_buf = switch (node.elem) {
+        .plane => |p| try parseElementHelper(p),
+        .image => |i| try parseElementHelper(i),
+        .hyperlink => |h| try parseElementHelper(h),
+        .link => |l| try parseElementHelper(l),
+        .form => |l| try parseElementHelper(l),
+        .input => |l| try parseElementHelper(l),
+        .tablecol => |l| try parseElementHelper(l),
+        .th => |l| try parseElementHelper(l),
+        .td => |l| try parseElementHelper(l),
+        else => @panic("unsupported element"),
+    };
+    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ buf, elem_buf });
+    return try std.heap.page_allocator.dupe(u8, buf);
+}
+
+inline fn parseElementHelper(elem: anytype) ![]u8 {
     const elemInfo = @typeInfo(@TypeOf(elem));
     var buf: []u8 = "";
     var isClosed = false;
@@ -272,17 +279,14 @@ inline fn parseElement(elem: anytype) ![]u8 {
 }
 
 fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
-    const webcomponents_template = "customElements.define('{s}',class extends HTMLDivElement{{constructor(){{super();const shadowRoot=this.attachShadow({{mode:'open'}});";
+    const webcomponents_template = "customElements.define('{s}',class extends HTMLDivElement{{constructor(){{super();this.attachShadow({{mode:'open'}});this._data=[]}}set data(value){{this._data=value;this.render()}}connectedCallback(){{this.render()}}render(){{this.shadowRoot.innerHTML=`";
     if (node.is) |is| {
         try writer.print(webcomponents_template, .{is});
     }
     for (node.children.items) |child| {
-        try writer.writeAll(try generateJsElement(child));
-        for (child.children.items) |c| {
-            try writer.writeAll(try generateJsElement(c));
-        }
-        try writer.print("shadowRoot.appendChild({s}).cloneNode(true);", .{child.elem.getTagName()});
+        try writer.writeAll(try generateJsElement(&child, ""));
     }
+    try writer.writeAll("`");
     if (node.listener.count() != 0) {
         // var iter = node.listener.iterator();
         // while (iter.next()) |it| {
@@ -299,25 +303,41 @@ fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
     try writer.writeAll("}},{extends:'div'})");
 }
 
-inline fn generateJsElement(node: n.Node) ![]const u8 {
-    const tag = node.elem.getTagName();
-    var buf = std.ArrayList(u8).init(std.heap.page_allocator);
-    var writer = buf.writer();
-    try writer.print("const {s}=document.createElement('{s}');", .{ tag, tag });
-
-    if (node.class) |class| {
-        try writer.print("{s}.className='{s}';", .{ tag, class });
+fn generateJsElement(node: *const n.Node, buffer: []u8) ![]u8 {
+    var buf = buffer;
+    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}{s}", .{
+        buf,
+        try parseElement(node, ""),
+    });
+    for (node.children.items) |child| {
+        buf = try generateJsElement(&child, buf);
     }
-    if (node.id) |id| {
-        try writer.print("{s}.id='{s}';", .{ tag, id });
-    }
-    if (node.elem.getTemplate()) |temp| {
-        try writer.print("{s}.textContent='{s}';", .{ tag, temp });
-    } else |e| {
-        std.debug.print("{s}\n{s} element does not support template.\n", .{ @errorName(e), tag });
-    }
-    return try buf.toOwnedSlice();
+    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}</{s}>", .{ buf, node.elem.getTagName() });
+    return try std.heap.page_allocator.dupe(u8, buf);
 }
+// fn generateJsElement(node: n.Node) ![]const u8 {
+//     const tag = node.elem.getTagName();
+//     var buf = std.ArrayList(u8).init(std.heap.page_allocator);
+//     var writer = buf.writer();
+//     try writer.print("const {s}=document.createElement('{s}');", .{ tag, tag });
+//
+//     if (node.class) |class| {
+//         try writer.print("{s}.className='{s}';", .{ tag, class });
+//     }
+//     if (node.id) |id| {
+//         try writer.print("{s}.id='{s}';", .{ tag, id });
+//     }
+//     if (node.elem.getTemplate()) |temp| {
+//         try writer.print("{s}.textContent='{s}';", .{ tag, temp });
+//     } else |e| {
+//         std.log.debug("{s}: {s} element does not support template.\n", .{ @errorName(e), tag });
+//     }
+//     for (node.children.items) |child| {
+//         const hoge = try generateJsElement(child);
+//         try writer.writeAll(hoge);
+//     }
+//     return try buf.toOwnedSlice();
+// }
 
 pub fn config(layout: fn (Node) Node) !void {
     const cwd = std.fs.cwd();

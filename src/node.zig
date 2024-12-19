@@ -33,6 +33,7 @@ pub const Node = struct {
     class: ?[]u8 = null,
     id: ?[]u8 = null,
     is: ?[]u8 = null,
+    hasIterate: ?bool = false,
 
     pub fn init(self: *const Node, args: anytype) Node {
         var tmp = Node{
@@ -531,6 +532,11 @@ pub const Node = struct {
         @constCast(self).children.append(child) catch |e| switch (e) {
             else => @panic("failed to append children"),
         };
+        @constCast(self).hasIterate = true;
+    }
+
+    pub fn asIterator(_: *const Node, child: Node) void {
+        std.debug.print("{any}\n", .{child});
     }
 
     pub fn iterate(self: *const Node, contents: anytype) Node {
