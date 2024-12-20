@@ -525,7 +525,7 @@ pub const Node = struct {
         tmp.listener.put(randomNumber, listener) catch |e| {
             std.debug.panic("{s}: failed to put {any} in event handler.", .{ @errorName(e), listener });
         };
-        return tmp.setId(std.fmt.allocPrint(std.heap.page_allocator, "{}", .{randomNumber}) catch unreachable);
+        return tmp.setClass(std.fmt.allocPrint(std.heap.page_allocator, "{}", .{randomNumber}) catch unreachable);
     }
 
     pub fn addChild(self: *const Node, child: Node) void {

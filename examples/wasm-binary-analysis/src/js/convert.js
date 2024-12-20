@@ -42,7 +42,10 @@ const wasm = async (obj) => {
   memoryBuffer.set(wasm_data, offset);
   console.log("memoryBuffer", memoryBuffer)
 
+  const start = performance.now();
   const len = obj.instance.exports.wasmAnalyze(offset, wasm_data.length);
+  const function_time = performance.now() - start
+  console.log("function time: [ms]", (function_time));
   console.log("len", len)
 
   const newBuffer = new Uint8Array(memory.buffer, obj.instance.exports.MEMORY.value, 65536);

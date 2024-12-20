@@ -185,7 +185,7 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
                 .javascript => |js| {
                     try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{js.filename}), try head_output.getEndPos());
                     // try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='module' src='js/{s}'></script>", .{js.filename}), try head_output.getEndPos());
-                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<script>document.getElementById(\"{}\").addEventListener(\"{s}\",()=>{{{s}()}})</script>", .{
+                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<script>document.getElementsByClassName(\"{}\")[0].addEventListener(\"{s}\",()=>{{{s}()}})</script>", .{
                         buf,
                         it.key_ptr.*,
                         @tagName(it.value_ptr.*.target),
@@ -198,7 +198,7 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
                         // try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='module' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
                     }
                     const js = try wasm.toJavaScript();
-                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<script>document.addEventListener('DOMContentLoaded',()=>{{document.getElementById(\"{}\").addEventListener(\"{s}\",()=>{{{s}}})}})</script>", .{
+                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<script>document.addEventListener('DOMContentLoaded',()=>{{document.getElementsByClassName(\"{}\")[0].addEventListener(\"{s}\",()=>{{{s}}})}})</script>", .{
                         buf,
                         it.key_ptr.*,
                         @tagName(it.value_ptr.*.target),

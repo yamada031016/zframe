@@ -5,7 +5,7 @@ const Head = c.head.Head;
 const node = z.node;
 
 fn index() node.Node {
-    const p = node.createNode(.p);
+    const h1 = node.createNode(.h1);
     const handler = z.handler.JsHandler{
         .then = .{
             .filename = "convert.js",
@@ -14,21 +14,26 @@ fn index() node.Node {
     };
     const loader = z.handler.Loader{ .webassembly = z.handler.WebAssembly.init("hash.wasm", handler) };
     const clickHandler = z.handler.EventListener{
-        .target = .click,
+        .target = .change,
         .content = loader,
         .options = null,
     };
 
-    return node.createNode(.div).init(.{
-        p.init("Analyze WebAssembly!").setClass("text-4xl"),
-        node.createNode(.form).init(.{
-            node.createNode(.input).init(.{
-                .type = .file,
-                .accept = ".wasm",
-            }).setId("input"),
-            node.createNode(.div).init("encrypt").addEventListener(clickHandler),
+    return node.createNode(.div).setClass("bg-gray-900 text-white font-sans").init(.{
+        node.createNode(.div).setClass("min-h-screen flex flex-col items-center py-8").init(.{
+            h1.init("Analyze WebAssembly!").setClass("text-3xl font-bold text-purple-400 mb-6"),
+            node.createNode(.div).setClass("w-full max-w-4xl px-4").init(.{
+                node.createNode(.form).init(.{
+                    // <label for="wasmFileInput" class="block text-lg font-medium text-purple-400 mb-2">Upload Wasm File</label>
+                    node.createNode(.input)
+                        .init(.{ .type = .file, .accept = ".wasm" })
+                        .setId("input")
+                        .setClass("file-input border border-purple-400 rounded-lg px-4 py-2 text-purple-400 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all")
+                        .addEventListener(clickHandler),
+                }),
+            }),
+            wasmAnalysisTable(&.{}).setClass("mt-6"),
         }),
-        wasmAnalysisTable(&.{}),
     });
 }
 
