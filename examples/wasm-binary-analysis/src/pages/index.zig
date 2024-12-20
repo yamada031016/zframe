@@ -19,20 +19,23 @@ fn index() node.Node {
         .options = null,
     };
 
-    return node.createNode(.div).setClass("bg-gray-900 text-white font-sans").init(.{
-        node.createNode(.div).setClass("min-h-screen flex flex-col items-center py-8").init(.{
-            h1.init("Analyze WebAssembly!").setClass("text-3xl font-bold text-purple-400 mb-6"),
-            node.createNode(.div).setClass("w-full max-w-4xl px-4").init(.{
-                node.createNode(.form).init(.{
-                    // <label for="wasmFileInput" class="block text-lg font-medium text-purple-400 mb-2">Upload Wasm File</label>
-                    node.createNode(.input)
-                        .init(.{ .type = .file, .accept = ".wasm" })
-                        .setId("input")
-                        .setClass("file-input border border-purple-400 rounded-lg px-4 py-2 text-purple-400 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all")
-                        .addEventListener(clickHandler),
+    return node.createNode(.div).init(.{
+        c.head.Head("Wasm Binary Analyzer", .{}),
+        node.createNode(.div).setClass("bg-gray-900 text-white font-sans").init(.{
+            node.createNode(.div).setClass("min-h-screen flex flex-col items-center py-8").init(.{
+                h1.init("Analyze WebAssembly!").setClass("text-3xl font-bold text-purple-400 mb-6"),
+                node.createNode(.div).setClass("w-full max-w-4xl px-4").init(.{
+                    node.createNode(.form).init(.{
+                        // <label for="wasmFileInput" class="block text-lg font-medium text-purple-400 mb-2">Upload Wasm File</label>
+                        node.createNode(.input)
+                            .init(.{ .type = .file, .accept = ".wasm" })
+                            .setId("input")
+                            .setClass("file-input border border-purple-400 rounded-lg px-4 py-2 text-purple-400 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all")
+                            .addEventListener(clickHandler),
+                    }),
                 }),
+                wasmAnalysisTable(&.{}),
             }),
-            wasmAnalysisTable(&.{}).setClass("mt-6"),
         }),
     });
 }
