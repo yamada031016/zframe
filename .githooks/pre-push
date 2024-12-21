@@ -31,3 +31,9 @@ for dir in `find examples/* -maxdepth 0 -type d`; do
   fi
   cd ../.. # back to project-root
 done
+
+# build & test for zframe-cli
+cd zframe-cli
+rm -rf .zig-cache
+zig build test
+zig build -Doptimize=ReleaseSmall
