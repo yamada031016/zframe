@@ -2,9 +2,10 @@ const std = @import("std");
 const log = std.log;
 const Browser = @import("browser.zig").Browser;
 const FileMonitor = @import("file-monitor.zig").FileMonitor;
-const HTTPServer = @import("zerver").HTTPServer;
-const WebSocketManager = @import("zerver").WebSocketManager;
-const WebSocketServer = @import("zerver").WebSocketServer;
+const zerver = @import("zerver");
+const HTTPServer = zerver.HTTPServer;
+const WebSocketManager = zerver.WebSocketManager;
+const WebSocketServer = zerver.WebSocketServer;
 // const md2html = @import("md2html");
 
 fn usage_cmd() []const u8 {
@@ -52,8 +53,12 @@ fn insertWebSocketConnectionCode(manager: WebSocketManager) !void {
 fn serve() !void {
     const observe_dir = "src";
 
-    const ip_addr = "0.0.0.0";
-    var server = try HTTPServer.init("zig-out/html", ip_addr, 3000);
+    const exe_opt = zerver.ExecuteOptions{
+        .dirname = "zig-out/html",
+        .ip_addr = "0.0.0.0",
+        .port_number = 3000,
+    };
+    var server = try HTTPServer.init(exe_opt);
     defer server.deinit();
 
     var manager = try WebSocketManager.init(5555);
@@ -66,14 +71,14 @@ fn serve() !void {
 
     const thread = try std.Thread.spawn(.{}, HTTPServer.serve, .{server});
     _ = thread;
-    _ = try std.Thread.spawn(.{}, WebSocketManager.waitConnection2, .{@constCast(&manager)});
+    _ = try std.Thread.spawn(.{}, WebSocketManager.connect, .{@constCast(&manager)});
     while (true) {
         if (try Monitor.detectChanges()) {
             const status = try execute_command(.{ "zig", "build", "run" });
             if (status == 0) {
                 try insertWebSocketConnectionCode(manager);
                 try stdout.print("\x1B[1;92mBUILD SUCCESS.\x1B[m\n", .{});
-                try manager.reload();
+                try manager.sendData("Reload!");
             }
         }
     }
