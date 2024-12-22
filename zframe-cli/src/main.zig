@@ -68,7 +68,7 @@ fn serve() !void {
     _ = thread;
     _ = try std.Thread.spawn(.{}, WebSocketManager.waitConnection2, .{@constCast(&manager)});
     while (true) {
-        if (Monitor.detectChanges()) {
+        if (try Monitor.detectChanges()) {
             const status = try execute_command(.{ "zig", "build", "run" });
             if (status == 0) {
                 try insertWebSocketConnectionCode(manager);

@@ -30,7 +30,7 @@ fn index() node.Node {
                         node.createNode(.input)
                             .init(.{ .type = .file, .accept = ".wasm" })
                             .setId("input")
-                            .setClass("file-input border border-purple-400 rounded-lg px-4 py-2 text-purple-400 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all")
+                            .setClass("block w-full text-gray-300 bg-gray-800 border border-gray-600 rounded-md px-3 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all")
                             .addEventListener(clickHandler),
                     }),
                 }),
