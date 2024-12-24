@@ -62,7 +62,7 @@ pub fn build(b: *std.Build) !void {
     };
     cwd.makeDir("zig-out/html/webcomponents") catch {};
     var html_dir = try cwd.openDir("zig-out/html", .{ .iterate = true });
-    try html_dir.chmod(0o777);
+    //try html_dir.chmod(0o777);
     defer html_dir.close();
 
     try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe }, .{ "components", components } });

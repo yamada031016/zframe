@@ -10,6 +10,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    exe.linkLibC();
 
     const mod_opt = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
     const zerver = b.dependency("zerver", .{

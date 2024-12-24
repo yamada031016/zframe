@@ -7,6 +7,7 @@ const HTTPServer = zerver.HTTPServer;
 const WebSocketManager = zerver.WebSocketManager;
 const WebSocketServer = zerver.WebSocketServer;
 // const md2html = @import("md2html");
+const tag = @import("builtin").os.tag;
 
 fn usage_cmd() []const u8 {
     return (
@@ -50,7 +51,7 @@ fn insertWebSocketConnectionCode(manager: WebSocketManager) !void {
     }
 }
 
-fn serve() !void {
+fn serve(stdout:std.fs.File.Writer) !void {
     const observe_dir = "src";
 
     const exe_opt = zerver.ExecuteOptions{
@@ -74,7 +75,7 @@ fn serve() !void {
     _ = try std.Thread.spawn(.{}, WebSocketManager.connect, .{@constCast(&manager)});
     while (true) {
         if (try Monitor.detectChanges()) {
-            const status = try execute_command(.{ "zig", "build", "run" });
+            const status = try execute_command("zig build run");
             if (status == 0) {
                 try insertWebSocketConnectionCode(manager);
                 try stdout.print("\x1B[1;92mBUILD SUCCESS.\x1B[m\n", .{});
@@ -143,7 +144,7 @@ fn initProject(name: []const u8) !void {
         }
 
         const cmd = try std.fmt.allocPrint(std.heap.page_allocator, "cd {s} ; zig fetch --save=zframe https://github.com/yamada031016/zframe/archive/refs/heads/master.tar.gz", .{name});
-        _ = try execute_command(.{ "sh", "-c", cmd });
+        _ = try execute_command(cmd);
     } else |_| {
         log.err("{s} is already exists.", .{name});
     }
@@ -151,7 +152,7 @@ fn initProject(name: []const u8) !void {
 
 fn update_dependencies() !void {
     const cmd = try std.fmt.allocPrint(std.heap.page_allocator, "zig fetch --save=zframe https://github.com/yamada031016/zframe/archive/refs/heads/master.tar.gz", .{});
-    _ = try execute_command(.{ "sh", "-c", cmd });
+    _ = try execute_command(cmd);
     const cwd = std.fs.cwd();
     const self_exe_path = try std.fs.selfExePathAlloc(std.heap.page_allocator);
     var cur_path: []const u8 = self_exe_path;
@@ -184,9 +185,7 @@ fn update_dependencies() !void {
     }
 }
 
-const stdout = std.io.getStdOut().writer();
-
-fn handleTty() !void {
+fn handleTty(stdout:std.fs.File.Writer) !void {
     var tty = try std.fs.cwd().openFile("/dev/tty", .{ .mode = .read_write });
     defer tty.close();
 
@@ -207,7 +206,7 @@ fn handleTty() !void {
         break :config raw;
     };
     try posix.tcsetattr(tty.handle, .FLUSH, raw);
-    try enterAlt();
+    try enterAlt(stdout);
     try stdout.writeAll("\x1B[2J"); // clear screen
     try stdout.writeAll("\x1B[0;0H"); // clear screen
 
@@ -216,7 +215,7 @@ fn handleTty() !void {
         if (byte == 'c' & '\x1F' or byte == 'q') {
             try posix.tcsetattr(tty.handle, .FLUSH, original);
             try stdout.writeAll("\x1B[2J"); // clear screen
-            try leaveAlt();
+            try leaveAlt(stdout);
             std.posix.exit(0);
         }
     } else |e| {
@@ -224,13 +223,13 @@ fn handleTty() !void {
     }
 }
 
-fn enterAlt() !void {
+fn enterAlt(stdout:std.fs.File.Writer) !void {
     try stdout.writeAll("\x1B[s"); // Save cursor position.
     try stdout.writeAll("\x1B[?47h"); // Save screen.
     try stdout.writeAll("\x1B[?1049h"); // Enable alternative buffer.
 }
 
-fn leaveAlt() !void {
+fn leaveAlt(stdout:std.fs.File.Writer) !void {
     try stdout.writeAll("\x1B[?1049l"); // Disable alternative buffer.
     try stdout.writeAll("\x1B[?47l"); // Restore screen.
     try stdout.writeAll("\x1B[u"); // Restore cursor position.
@@ -239,10 +238,16 @@ fn leaveAlt() !void {
 const os = std.os;
 const posix = std.posix;
 pub fn main() !void {
-    var args = std.process.args();
+    const stdout = std.io.getStdOut().writer();
+    var args = try std.process.argsWithAllocator(std.heap.page_allocator);
     _ = args.skip();
-    const thread = try std.Thread.spawn(.{}, handleTty, .{});
-    _ = thread;
+    switch(tag) {
+        .linux => {
+            const thread = try std.Thread.spawn(.{}, handleTty, .{stdout});
+            _ = thread;
+        },
+        else => {},
+    }
 
     if (args.next()) |arg| {
         if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "help")) {
@@ -254,14 +259,14 @@ pub fn main() !void {
                 std.log.err("zframe init <project_name>", .{});
             }
         } else if (std.mem.eql(u8, arg, "build")) {
-            const status = try execute_command(.{ "/bin/zig", "build", "run" });
+            const status = try execute_command("zig build run");
             if (status == 0) {
                 try stdout.print("\x1B[1;92mBUILD SUCCESS.\x1B[m\n", .{});
             }
             // try mdToHTML();
             if (args.next()) |option| {
                 if (std.mem.eql(u8, option, "serve")) {
-                    try serve();
+                    try serve(stdout);
                 } else if (std.mem.eql(u8, option, "-h")) {}
             }
         } else if (std.mem.eql(u8, arg, "update")) {
@@ -276,7 +281,17 @@ pub fn main() !void {
     }
 }
 
-fn execute_command(command: anytype) !u32 {
+pub fn execute_command(command: []const u8) !u32 {
+    switch(tag) {
+        .linux,.macos => return posixExecCmd(.{"sh","-c",command}),
+        .windows => {
+            return windowsExecCmd(command);
+        },
+        else => @panic("unsupported OS"),
+    }
+}
+
+fn posixExecCmd(command:anytype) !u32 {
     const fork_pid = try std.posix.fork();
     if (fork_pid == 0) {
         // child process
@@ -288,4 +303,64 @@ fn execute_command(command: anytype) !u32 {
         return wait_result.status;
     }
     unreachable;
+}
+
+const windows = std.os.windows;
+fn windowsExecCmd(command: []const u8) !windows.DWORD {
+    const cmd:[:0]const u16 = convert:{
+        var buf:[256]u16 = undefined;
+        var buf_pos:u8 = 0;
+        for(command) |char| {
+            buf[buf_pos] = @intCast(char);
+            buf_pos += 1;
+        }
+        break :convert try std.heap.page_allocator.dupeZ(u16,buf[0..buf_pos]);
+    };
+    const child_proc = spawn: {
+        var startup_info: windows.STARTUPINFOW = .{
+            .cb = @sizeOf(windows.STARTUPINFOW),
+            .lpReserved = null,
+            .lpDesktop = null,
+            .lpTitle = null,
+            .dwX = 0,
+            .dwY = 0,
+            .dwXSize = 0,
+            .dwYSize = 0,
+            .dwXCountChars = 0,
+            .dwYCountChars = 0,
+            .dwFillAttribute = 0,
+            .dwFlags = windows.STARTF_USESTDHANDLES,
+            .wShowWindow = 0,
+            .cbReserved2 = 0,
+            .lpReserved2 = null,
+            .hStdInput = null,
+            .hStdOutput = null,
+            .hStdError = windows.GetStdHandle(windows.STD_ERROR_HANDLE) catch null,
+        };
+        var proc_info: windows.PROCESS_INFORMATION = undefined;
+
+        try windows.CreateProcessW(
+            null,
+            @constCast(cmd.ptr),
+            null,
+            null,
+            windows.FALSE,
+            0,
+            null,
+            null,
+            &startup_info,
+            &proc_info,
+        );
+        windows.CloseHandle(proc_info.hThread);
+
+        break :spawn proc_info.hProcess;
+    };
+    defer windows.CloseHandle(child_proc);
+    try windows.WaitForSingleObjectEx(child_proc, windows.INFINITE, false);
+
+    var exit_code: windows.DWORD = undefined;
+    if (windows.kernel32.GetExitCodeProcess(child_proc, &exit_code) == 0) {
+        return error.UnableToGetExitCode;
+    }
+    return exit_code;
 }

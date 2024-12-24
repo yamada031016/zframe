@@ -33,7 +33,7 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
         while (!mem.eql(u8, std.fs.path.basename(parent_dir), "pages")) {
             html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, std.fs.path.basename(parent_dir) });
             var output_dir = try std.fs.cwd().makeOpenPath(html_output_path, .{ .iterate = true });
-            try output_dir.chmod(0o777);
+            //try output_dir.chmod(0o777);
             output_dir.close();
             parent_dir = std.fs.path.dirname(parent_dir).?;
         }
@@ -52,7 +52,7 @@ pub fn render(page_name: []const u8, args: Node) !void {
         },
         else => return,
     };
-    try html.chmod(0o777);
+    //try html.chmod(0o777);
     defer html.close();
 
     const layout: ?std.fs.File = l: {

@@ -4,61 +4,41 @@ const IN = std.os.linux.IN;
 
 pub const FileMonitor = struct {
     root_path: []const u8,
-    monitors: Watcher,
+    watcher: switch(native_os) {
+        .linux => Inotify,
+        else => Polling,
+},
 
     pub fn init(dir_path: []const u8) !FileMonitor {
         log.info("file-monitor watching {s}...\n", .{dir_path});
         var self = FileMonitor{
             .root_path = dir_path,
-            .monitors = try Watcher.init(),
+            .watcher = try initWatcher(),
         };
-        try self.monitors.addWatcherRecursive(dir_path);
+        try self.addWatcherRecursive(dir_path);
         return self;
     }
 
-    pub fn deinit(self: *FileMonitor) void {
-        self.monitors.deinit();
-    }
-
     pub fn detectChanges(self: *FileMonitor) !bool {
-        const watch_info = try self.monitors.watch(self.root_path);
+        const watch_info = try self.watcher.watch(self.root_path);
         switch (watch_info) {
             .create, .moveto => |path| {
-                try self.monitors.addWatcherRecursive(path);
+                try self.addWatcherRecursive(path);
                 return false;
             },
             .delete, .movefrom => |path| {
-                try self.monitors.removeWatcher(path);
+                try self.removeWatcher(path);
                 return false;
             },
             // .movefrom, .moveto => |_| return false,
             .modified => return true,
         }
     }
-};
-
-const Watcher = union(enum) {
-    inotify: Inotify,
-    polling: Polling,
-
-    pub fn init() !Watcher {
-        switch (@import("builtin").os.tag) {
-            .linux => return .{ .inotify = try Inotify.init() },
-            else => return .{ .polling = try Polling.init() },
-        }
+    pub fn deinit(self: *FileMonitor) void {
+        self.watcher.deinit();
     }
 
-    pub fn deinit(self: *Watcher) void {
-        switch (self.*) {
-            .inotify => {
-                // _ = std.os.linux.inotify_rm_watch(self.fd, self.watcher);
-                _ = std.os.linux.close(self.inotify.fd);
-            },
-            .polling => {},
-        }
-    }
-
-    pub fn addWatcherRecursive(self: *Watcher, dir_path: []const u8) !void {
+    fn addWatcherRecursive(self: *FileMonitor, dir_path: []const u8) !void {
         var root = try std.fs.cwd().openDir(dir_path, .{ .iterate = true });
         defer root.close();
         var walker = try root.walk(std.heap.page_allocator);
@@ -66,8 +46,8 @@ const Watcher = union(enum) {
             switch (entry.kind) {
                 .directory => {
                     const target_path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ dir_path, entry.path });
-                    if (!self.isMonitored(target_path)) {
-                        try self.addWatch(target_path);
+                    if (!self.watcher.isMonitored(target_path)) {
+                        try self.watcher.addWatch(target_path);
                     }
                 },
                 else => {},
@@ -75,48 +55,9 @@ const Watcher = union(enum) {
         }
     }
 
-    fn addWatch(self: *Watcher, path: []const u8) !void {
-        switch (self.*) {
-            .inotify => return {
-                const wd = try std.posix.inotify_add_watch(self.inotify.fd, path, IN.CREATE | IN.DELETE | IN.MODIFY | IN.MOVE_SELF | IN.MOVE);
-                try self.inotify.monitor.put(path, wd);
-            },
-            .polling => {
-                const weight = try self.polling.calculateDirWeight(path);
-                try self.polling.monitor.put(path, weight);
-            },
-        }
-    }
-
-    fn isMonitored(self: *Watcher, file_path: []const u8) bool {
-        switch (self.*) {
-            .inotify => return self.inotify.monitor.contains(file_path),
-            .polling => return self.polling.monitor.contains(file_path),
-        }
-    }
-
-    pub fn removeWatcher(self: *Watcher, path: []const u8) !void {
-        switch (self.*) {
-            .inotify => return {
-                const kv = self.inotify.monitor.fetchRemove(path).?;
-                log.debug("{any}", .{kv});
-            },
-            .polling => {
-                const kv = self.polling.monitor.fetchRemove(path).?;
-                log.debug("{any}", .{kv});
-            },
-        }
-    }
-
-    pub fn watch(self: *Watcher, path: []const u8) !WatchInfo {
-        switch (self.*) {
-            .inotify => |inotify| {
-                return try inotify.watch(path);
-            },
-            .polling => |polling| {
-                return try polling.watch(path);
-            },
-        }
+    pub fn removeWatcher(self: *FileMonitor, path: []const u8) !void {
+        const kv = self.watcher.watchDirs.fetchRemove(path).?;
+        log.debug("{any}", .{kv});
     }
 };
 
@@ -134,16 +75,47 @@ const WatchInfo = union(WatchState) {
     moveto: []const u8,
     modified: void,
 };
+const native_os = @import("builtin").os.tag;
+const initWatcher = switch(native_os) {
+    .linux => initInotify,
+    else => initPolling,
+};
+
+fn initInotify() !Inotify {
+    const fd = try std.posix.inotify_init1(0);
+    const inotify = .{
+        .fd = fd,
+        .watchDirs = std.StringHashMap(i32).init(std.heap.page_allocator),
+    };
+    return inotify;
+    //return .{.inotify = inotify };
+}
+
+fn initPolling() !Polling {
+    const polling = .{
+        .watchDirs = std.StringHashMap(i128).init(std.heap.page_allocator),
+    };
+    return polling;
+    //return .{.polling = polling };
+}
 
 const Inotify = struct {
     fd: i32,
-    monitor: std.StringHashMap(i32),
-    pub fn init() !Inotify {
-        const fd = try std.posix.inotify_init1(0);
-        return .{
-            .fd = fd,
-            .monitor = std.StringHashMap(i32).init(std.heap.page_allocator),
-        };
+    watchDirs: std.StringHashMap(i32),
+
+    pub fn deinit(self:*Inotify) void {
+        // _ = std.os.linux.inotify_rm_watch(self.fd, self.watcher);
+        _ = std.os.linux.close(self.watcher.fd);
+        self.watchDirs.deinit();
+    }
+
+    pub fn isMonitored(self: *Inotify, file_path: []const u8) bool {
+        return self.watchDirs.contains(file_path);
+    }
+
+    pub fn addWatch(self:*Inotify,path:[]const u8) !void {
+        const wd = try std.posix.inotify_add_watch(self.fd, path, IN.CREATE | IN.DELETE | IN.MODIFY | IN.MOVE_SELF | IN.MOVE);
+        try self.watchDirs.put(path, wd);
     }
 
     pub fn watch(self: *const Inotify, root_path: []const u8) !WatchInfo {
@@ -192,12 +164,20 @@ const Inotify = struct {
 };
 
 pub const Polling = struct {
-    monitor: std.StringHashMap(i128),
+    watchDirs: std.StringHashMap(i128),
 
-    pub fn init() !Polling {
-        return .{
-            .monitor = std.StringHashMap(i128).init(std.heap.page_allocator),
-        };
+    pub fn deinit(self:*Polling) void {
+        self.watchDirs.deinit();
+    }
+
+    pub fn isMonitored(self: *Polling, file_path: []const u8) bool {
+        return self.watchDirs.contains(file_path);
+    }
+
+
+    pub fn addWatch(self:*Polling,path:[]const u8) !void {
+        const weight = try self.calculateDirWeight(path);
+        try self.watchDirs.put(path, weight);
     }
 
     pub fn watch(self: *const Polling, path: []const u8) !WatchInfo {
@@ -211,7 +191,7 @@ pub const Polling = struct {
                     .directory => {
                         const dir_path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ path, entry.path });
                         const weight = try self.calculateDirWeight(dir_path);
-                        if (self.monitor.get(dir_path)) |prev_weight| {
+                        if (self.watchDirs.get(dir_path)) |prev_weight| {
                             if (prev_weight != weight) {
                                 return .{ .modified = {} };
                             }

@@ -24,9 +24,15 @@ pub const Browser = struct {
     }
 
     pub fn openHtml(self: *Browser) !void {
-        const argv = &.{ self.browser, self.url };
-        try self.launch(argv);
-        // try self.setActiveBrowserList();
+        switch (@import("builtin").os.tag) {
+            .linux => {
+                const cmd = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ self.browser, self.url });
+                // try self.launch(argv);
+                _ = try @import("main.zig").execute_command(cmd);
+                // try self.setActiveBrowserList();
+            },
+            else => {},
+        }
     }
 
     fn setActiveBrowserList(self: *Browser) !void {
@@ -44,16 +50,6 @@ pub const Browser = struct {
         while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
             browser_id = line;
         }
-    }
-
-    pub fn reload(self: *Browser) !void {
-        // const init_argv = &.{"xdotool", "windowfucus", "--sync", browser_id};
-        // try self.launch(init_argv);
-        // const reload_argv = &.{"xdotool", "key", "F5"};
-        // try self.launch(reload_argv);
-        // const reload_argv = &.{ "xdotool", "search", "--onlyvisible", "--name", "Chrome", "|", "xargs", "xdotool", "windowfocus", "--sync", ";", "xdotool", "key", "ctrl+r" };
-        const reload_argv = &.{ "sh", "-c", "lastid=$(xdotool getactivewindow); xdotool search --onlyvisible --name Chrome | xargs xdotool windowfocus --sync ; xdotool key ctrl+r; xdotool windowfocus --sync $lastid " };
-        try self.launch(reload_argv);
     }
 
     fn launch(self: *Browser, argv: anytype) !void {
