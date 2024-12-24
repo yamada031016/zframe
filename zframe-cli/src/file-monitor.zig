@@ -25,10 +25,12 @@ pub const FileMonitor = struct {
         switch (watch_info) {
             .create, .moveto => |path| {
                 try self.addWatcherRecursive(path);
+        std.debug.print("create ?\n",.{});
                 return false;
             },
             .delete, .movefrom => |path| {
                 try self.removeWatcher(path);
+        std.debug.print("delete ?\n",.{});
                 return false;
             },
             // .movefrom, .moveto => |_| return false,
@@ -46,7 +48,7 @@ pub const FileMonitor = struct {
         while (try walker.next()) |entry| {
             switch (entry.kind) {
                 .directory => {
-                    const target_path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ dir_path, entry.path });
+                    const target_path = try std.fs.path.resolve(std.heap.page_allocator, &.{ dir_path, entry.path });
                     if (!self.watcher.isWatched(target_path)) {
                         try self.watcher.addWatch(target_path);
                     }
@@ -125,12 +127,12 @@ const Inotify = struct {
                 switch (event.mask) {
                     IN.CREATE | IN.ISDIR => {
                         log.info("created {s}", .{event.getName().?});
-                        const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
+                    const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                         return WatchInfo{ .create = path };
                     },
                     IN.DELETE | IN.ISDIR => {
                         log.info("deleted {s}", .{event.getName().?});
-                        const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
+                    const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                         return WatchInfo{ .delete = path };
                     },
                     IN.MODIFY => {
@@ -138,19 +140,19 @@ const Inotify = struct {
                         return WatchInfo{ .modified = {} };
                     },
                     IN.MOVED_FROM => {
-                        const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
+                    const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                         return WatchInfo{ .movefrom = path };
                     },
                     IN.MOVED_TO => {
-                        const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
+                    const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                         return WatchInfo{ .moveto = path };
                     },
                     // IN.MOVE_SELF => {
-                    //     const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ self.root_path, event.getName().? });
+                    // const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                     //     return WatchInfo{ .moved = path };
                     // },
                     // IN.MOVE => {
-                    //     const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ self.root_path, event.getName().? });
+                    // const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                     //     return WatchInfo{ .moved = path };
                     // },
                     else => {},
@@ -178,24 +180,28 @@ pub const Polling = struct {
         try self.watchDirs.put(path, weight);
     }
 
-    pub fn watch(self: *const Polling, path: []const u8) !WatchInfo {
+    pub fn watch(self: *Polling, path: []const u8) !WatchInfo {
         var root = try std.fs.cwd().openDir(path, .{ .iterate = true });
         defer root.close();
-        var walker = try root.walk(std.heap.page_allocator);
         while (true) {
-            std.time.sleep(50 * 10 ^ 6); // 50 ms
+            var walker = try root.walk(std.heap.page_allocator);
+            defer walker.deinit();
+            std.time.sleep(1 * 1_000_000_000 ); // 1 s
             while (try walker.next()) |entry| {
                 switch (entry.kind) {
                     .directory => {
-                        const dir_path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ path, entry.path });
+                    const dir_path = try std.fs.path.resolve(std.heap.page_allocator, &.{ path, entry.path });
                         const weight = try self.calculateDirWeight(dir_path);
                         if (self.watchDirs.get(dir_path)) |prev_weight| {
                             if (prev_weight != weight) {
+                                log.debug("{s} modified\n", .{ dir_path });
+                                try self.watchDirs.put(dir_path, weight);
                                 return .{ .modified = {} };
-                            } else {
-                                log.debug("{s}'s weight={}\n", .{ dir_path, weight });
+                            }else{
+
                             }
                         } else {
+                            try self.watchDirs.put(dir_path, weight);
                             return .{ .create = path };
                         }
                     },
@@ -209,18 +215,21 @@ pub const Polling = struct {
         var root = try std.fs.cwd().openDir(dir_path, .{ .iterate = true });
         defer root.close();
         var walker = try root.walk(std.heap.page_allocator);
+        defer walker.deinit();
         var weight: i128 = 0;
         while (try walker.next()) |entry| {
             switch (entry.kind) {
                 .file => {
-                    const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ dir_path, entry.path });
-                    if (root.openFile(path, .{})) |file| {
+                    const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ dir_path, entry.path });
+                    if (root.openFile(entry.path, .{})) |file| {
+                        defer file.close();
                         const stat = try file.stat();
                         weight += @as(i128, @intCast(stat.size)) + stat.mtime;
                     } else |err| {
                         switch (err) {
-                            // ファイルが空だと起こる
-                            error.FileNotFound => {},
+                            error.FileNotFound => {
+                                log.err("{s} not found.\n",.{path});
+                        },
                             else => return err,
                         }
                     }
