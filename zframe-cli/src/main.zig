@@ -51,7 +51,7 @@ fn insertWebSocketConnectionCode(manager: WebSocketManager) !void {
     }
 }
 
-fn serve(stdout:std.fs.File.Writer) !void {
+fn serve(stdout: std.fs.File.Writer) !void {
     const observe_dir = "src";
 
     const exe_opt = zerver.ExecuteOptions{
@@ -185,7 +185,7 @@ fn update_dependencies() !void {
     }
 }
 
-fn handleTty(stdout:std.fs.File.Writer) !void {
+fn handleTty(stdout: std.fs.File.Writer) !void {
     var tty = try std.fs.cwd().openFile("/dev/tty", .{ .mode = .read_write });
     defer tty.close();
 
@@ -223,13 +223,13 @@ fn handleTty(stdout:std.fs.File.Writer) !void {
     }
 }
 
-fn enterAlt(stdout:std.fs.File.Writer) !void {
+fn enterAlt(stdout: std.fs.File.Writer) !void {
     try stdout.writeAll("\x1B[s"); // Save cursor position.
     try stdout.writeAll("\x1B[?47h"); // Save screen.
     try stdout.writeAll("\x1B[?1049h"); // Enable alternative buffer.
 }
 
-fn leaveAlt(stdout:std.fs.File.Writer) !void {
+fn leaveAlt(stdout: std.fs.File.Writer) !void {
     try stdout.writeAll("\x1B[?1049l"); // Disable alternative buffer.
     try stdout.writeAll("\x1B[?47l"); // Restore screen.
     try stdout.writeAll("\x1B[u"); // Restore cursor position.
@@ -241,7 +241,7 @@ pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
     var args = try std.process.argsWithAllocator(std.heap.page_allocator);
     _ = args.skip();
-    switch(tag) {
+    switch (tag) {
         .linux => {
             const thread = try std.Thread.spawn(.{}, handleTty, .{stdout});
             _ = thread;
@@ -282,8 +282,8 @@ pub fn main() !void {
 }
 
 pub fn execute_command(command: []const u8) !u32 {
-    switch(tag) {
-        .linux,.macos => return posixExecCmd(.{"sh","-c",command}),
+    switch (tag) {
+        .linux, .macos => return posixExecCmd(.{ "sh", "-c", command }),
         .windows => {
             return windowsExecCmd(command);
         },
@@ -291,7 +291,7 @@ pub fn execute_command(command: []const u8) !u32 {
     }
 }
 
-fn posixExecCmd(command:anytype) !u32 {
+fn posixExecCmd(command: anytype) !u32 {
     const fork_pid = try std.posix.fork();
     if (fork_pid == 0) {
         // child process
@@ -307,14 +307,14 @@ fn posixExecCmd(command:anytype) !u32 {
 
 const windows = std.os.windows;
 fn windowsExecCmd(command: []const u8) !windows.DWORD {
-    const cmd:[:0]const u16 = convert:{
-        var buf:[256]u16 = undefined;
-        var buf_pos:u8 = 0;
-        for(command) |char| {
+    const cmd: [:0]const u16 = convert: {
+        var buf: [256]u16 = undefined;
+        var buf_pos: u8 = 0;
+        for (command) |char| {
             buf[buf_pos] = @intCast(char);
             buf_pos += 1;
         }
-        break :convert try std.heap.page_allocator.dupeZ(u16,buf[0..buf_pos]);
+        break :convert try std.heap.page_allocator.dupeZ(u16, buf[0..buf_pos]);
     };
     const child_proc = spawn: {
         var startup_info: windows.STARTUPINFOW = .{

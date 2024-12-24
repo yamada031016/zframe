@@ -1,13 +1,14 @@
 const std = @import("std");
 const log = std.log;
 const IN = std.os.linux.IN;
+const native_os = @import("builtin").os.tag;
 
 pub const FileMonitor = struct {
     root_path: []const u8,
-    watcher: switch(native_os) {
+    watcher: switch (native_os) {
         .linux => Inotify,
         else => Polling,
-},
+    },
 
     pub fn init(dir_path: []const u8) !FileMonitor {
         log.info("file-monitor watching {s}...\n", .{dir_path});
@@ -45,8 +46,8 @@ pub const FileMonitor = struct {
         while (try walker.next()) |entry| {
             switch (entry.kind) {
                 .directory => {
-                    const target_path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ dir_path, entry.path });
-                    if (!self.watcher.isMonitored(target_path)) {
+                    const target_path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ dir_path, entry.path });
+                    if (!self.watcher.isWatched(target_path)) {
                         try self.watcher.addWatch(target_path);
                     }
                 },
@@ -75,8 +76,8 @@ const WatchInfo = union(WatchState) {
     moveto: []const u8,
     modified: void,
 };
-const native_os = @import("builtin").os.tag;
-const initWatcher = switch(native_os) {
+
+const initWatcher = switch (native_os) {
     .linux => initInotify,
     else => initPolling,
 };
@@ -88,7 +89,6 @@ fn initInotify() !Inotify {
         .watchDirs = std.StringHashMap(i32).init(std.heap.page_allocator),
     };
     return inotify;
-    //return .{.inotify = inotify };
 }
 
 fn initPolling() !Polling {
@@ -96,24 +96,23 @@ fn initPolling() !Polling {
         .watchDirs = std.StringHashMap(i128).init(std.heap.page_allocator),
     };
     return polling;
-    //return .{.polling = polling };
 }
 
 const Inotify = struct {
     fd: i32,
     watchDirs: std.StringHashMap(i32),
 
-    pub fn deinit(self:*Inotify) void {
+    pub fn deinit(self: *Inotify) void {
         // _ = std.os.linux.inotify_rm_watch(self.fd, self.watcher);
         _ = std.os.linux.close(self.watcher.fd);
         self.watchDirs.deinit();
     }
 
-    pub fn isMonitored(self: *Inotify, file_path: []const u8) bool {
+    pub fn isWatched(self: *Inotify, file_path: []const u8) bool {
         return self.watchDirs.contains(file_path);
     }
 
-    pub fn addWatch(self:*Inotify,path:[]const u8) !void {
+    pub fn addWatch(self: *Inotify, path: []const u8) !void {
         const wd = try std.posix.inotify_add_watch(self.fd, path, IN.CREATE | IN.DELETE | IN.MODIFY | IN.MOVE_SELF | IN.MOVE);
         try self.watchDirs.put(path, wd);
     }
@@ -126,12 +125,12 @@ const Inotify = struct {
                 switch (event.mask) {
                     IN.CREATE | IN.ISDIR => {
                         log.info("created {s}", .{event.getName().?});
-                        const path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
+                        const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
                         return WatchInfo{ .create = path };
                     },
                     IN.DELETE | IN.ISDIR => {
                         log.info("deleted {s}", .{event.getName().?});
-                        const path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
+                        const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
                         return WatchInfo{ .delete = path };
                     },
                     IN.MODIFY => {
@@ -139,19 +138,19 @@ const Inotify = struct {
                         return WatchInfo{ .modified = {} };
                     },
                     IN.MOVED_FROM => {
-                        const path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
+                        const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
                         return WatchInfo{ .movefrom = path };
                     },
                     IN.MOVED_TO => {
-                        const path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
+                        const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ root_path, event.getName().? });
                         return WatchInfo{ .moveto = path };
                     },
                     // IN.MOVE_SELF => {
-                    //     const path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ self.root_path, event.getName().? });
+                    //     const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ self.root_path, event.getName().? });
                     //     return WatchInfo{ .moved = path };
                     // },
                     // IN.MOVE => {
-                    //     const path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ self.root_path, event.getName().? });
+                    //     const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ self.root_path, event.getName().? });
                     //     return WatchInfo{ .moved = path };
                     // },
                     else => {},
@@ -166,16 +165,15 @@ const Inotify = struct {
 pub const Polling = struct {
     watchDirs: std.StringHashMap(i128),
 
-    pub fn deinit(self:*Polling) void {
+    pub fn deinit(self: *Polling) void {
         self.watchDirs.deinit();
     }
 
-    pub fn isMonitored(self: *Polling, file_path: []const u8) bool {
+    pub fn isWatched(self: *Polling, file_path: []const u8) bool {
         return self.watchDirs.contains(file_path);
     }
 
-
-    pub fn addWatch(self:*Polling,path:[]const u8) !void {
+    pub fn addWatch(self: *Polling, path: []const u8) !void {
         const weight = try self.calculateDirWeight(path);
         try self.watchDirs.put(path, weight);
     }
@@ -185,15 +183,17 @@ pub const Polling = struct {
         defer root.close();
         var walker = try root.walk(std.heap.page_allocator);
         while (true) {
+            std.time.sleep(50 * 10 ^ 6); // 50 ms
             while (try walker.next()) |entry| {
-                std.time.sleep(50 * 10 ^ 6); // 50 ms
                 switch (entry.kind) {
                     .directory => {
-                        const dir_path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ path, entry.path });
+                        const dir_path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ path, entry.path });
                         const weight = try self.calculateDirWeight(dir_path);
                         if (self.watchDirs.get(dir_path)) |prev_weight| {
                             if (prev_weight != weight) {
                                 return .{ .modified = {} };
+                            } else {
+                                log.debug("{s}'s weight={}\n", .{ dir_path, weight });
                             }
                         } else {
                             return .{ .create = path };
@@ -205,7 +205,7 @@ pub const Polling = struct {
         }
     }
 
-    pub fn calculateDirWeight(_: *const Polling, dir_path: []const u8) !i128 {
+    fn calculateDirWeight(_: *const Polling, dir_path: []const u8) !i128 {
         var root = try std.fs.cwd().openDir(dir_path, .{ .iterate = true });
         defer root.close();
         var walker = try root.walk(std.heap.page_allocator);
@@ -213,10 +213,10 @@ pub const Polling = struct {
         while (try walker.next()) |entry| {
             switch (entry.kind) {
                 .file => {
-                    const path = try std.fmt.allocPrintZ(std.heap.page_allocator, "{s}/{s}", .{ dir_path, entry.path });
+                    const path = try std.fmt.allocPrint(std.heap.page_allocator, "{s}/{s}", .{ dir_path, entry.path });
                     if (root.openFile(path, .{})) |file| {
                         const stat = try file.stat();
-                        weight += stat.size + stat.mtime;
+                        weight += @as(i128, @intCast(stat.size)) + stat.mtime;
                     } else |err| {
                         switch (err) {
                             // ファイルが空だと起こる

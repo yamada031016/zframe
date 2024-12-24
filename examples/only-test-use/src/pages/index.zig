@@ -28,7 +28,7 @@ fn index() node.Node {
                 node.createNode(.ul).init(.{}),
                 node.createNode(.nav).init(.{
                     node.createNode(.ol).init(.{
-                        node.createNode(.li).init(.{node.createNode(.a).init(.{ .href = "/", .template = "CHANGED!" })}),
+                        node.createNode(.li).init(.{node.createNode(.a).init(.{ .href = "/", .template = "index" })}),
                         node.createNode(.li).init(.{node.createNode(.a).init(.{ .href = "/about", .template = "about" })}),
                     }),
                 }),
