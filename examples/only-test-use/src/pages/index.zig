@@ -5,7 +5,7 @@ const node = z.node;
 const h = z.handler;
 const WebAssembly = z.handler.WebAssembly;
 
-fn index() node.Node {
+pub fn index() node.Node {
     const html = node.createNode(.html);
 
     return html.setClass("").init(.{

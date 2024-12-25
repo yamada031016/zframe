@@ -3,7 +3,7 @@ const c = @import("components");
 const Head = c.head.Head;
 const node = z.node;
 
-fn about() node.Node {
+pub fn about() node.Node {
     const h1 = node.createNode(.h1);
     const div = node.createNode(.div);
 

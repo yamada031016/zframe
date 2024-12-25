@@ -15,7 +15,7 @@ pub fn createNode(comptime tagName: Tag) Node {
         .elem = elem.createElement(tagName),
         .children = std.ArrayList(Node).init(allocator),
         .loadContents = std.ArrayList(Loader).init(allocator),
-        .listener = std.AutoHashMap(u64, h.EventListener).init(allocator),
+        .listener = std.AutoArrayHashMap(u64, h.EventListener).init(allocator),
     };
     return node;
 }
@@ -28,7 +28,7 @@ pub const Node = struct {
     const alloc = gpa.allocator();
     elem: Element,
     children: std.ArrayList(Node),
-    listener: std.AutoHashMap(u64, h.EventListener),
+    listener: std.AutoArrayHashMap(u64, h.EventListener),
     loadContents: std.ArrayList(Loader),
     class: ?[]u8 = null,
     id: ?[]u8 = null,
@@ -41,7 +41,7 @@ pub const Node = struct {
             .class = self.class,
             .id = self.id,
             .is = self.is,
-            .listener = std.AutoHashMap(u64, h.EventListener).init(alloc),
+            .listener = std.AutoArrayHashMap(u64, h.EventListener).init(alloc),
             .loadContents = std.ArrayList(Loader).init(alloc),
             .children = std.ArrayList(Node).init(alloc),
         };
@@ -56,7 +56,7 @@ pub const Node = struct {
                                         if (@typeInfo(pointer.child) == .Array) {
                                             if (i < args.len - 1) {
                                                 // expect []const u8
-                                                plane.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
+                                                plane.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
                                             } else {
                                                 // expect []const u8 without format specific.
                                                 plane.*.template = @constCast(arg);
@@ -128,9 +128,9 @@ pub const Node = struct {
                                         if (@typeInfo(pointer.child) == .Array) {
                                             if (i < args.len - 1 and @typeInfo(@TypeOf(args[i + 1])) == .Struct) {
                                                 if (hyperlink.href) |_| {
-                                                    hyperlink.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
+                                                    hyperlink.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
                                                 } else {
-                                                    hyperlink.*.href = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("failed to format hyper reference string."));
+                                                    hyperlink.*.href = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format hyper reference string."));
                                                     if (args.len < 3) {
                                                         hyperlink.*.template = hyperlink.*.href;
                                                     }
@@ -446,7 +446,7 @@ pub const Node = struct {
                                     .Pointer => |pointer| {
                                         if (@typeInfo(pointer.child) == .Array) {
                                             if (i < args.len - 1) {
-                                                custom.*.template = @constCast(std.fmt.allocPrintZ(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                                custom.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("hoge"));
                                             } else {
                                                 custom.*.template = @constCast(arg);
                                             }
@@ -480,7 +480,7 @@ pub const Node = struct {
     pub fn setClass(self: *const Node, class_name: []const u8) Node {
         var tmp = self.*;
         if (tmp.class) |class| {
-            tmp.class = std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ class, @constCast(class_name) }) catch @panic("failed to format class string");
+            tmp.class = std.fmt.allocPrint(alloc, "{s} {s}", .{ class, @constCast(class_name) }) catch @panic("failed to format class string");
         } else {
             tmp.class = @constCast(class_name);
         }
@@ -490,7 +490,7 @@ pub const Node = struct {
     pub fn setId(self: *const Node, id_name: []const u8) Node {
         var tmp = self.*;
         if (tmp.id) |id| {
-            tmp.id = std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ id, @constCast(id_name) }) catch @panic("failed to format class string");
+            tmp.id = std.fmt.allocPrint(alloc, "{s} {s}", .{ id, @constCast(id_name) }) catch @panic("failed to format class string");
         } else {
             tmp.id = @constCast(id_name);
         }
@@ -525,7 +525,7 @@ pub const Node = struct {
         tmp.listener.put(randomNumber, listener) catch |e| {
             std.debug.panic("{s}: failed to put {any} in event handler.", .{ @errorName(e), listener });
         };
-        return tmp.setClass(std.fmt.allocPrint(std.heap.page_allocator, "{}", .{randomNumber}) catch unreachable);
+        return tmp.setClass(std.fmt.allocPrint(alloc, "{}", .{randomNumber}) catch unreachable);
     }
 
     pub fn addChild(self: *const Node, child: Node) void {
@@ -553,7 +553,7 @@ pub const Node = struct {
         };
     }
 
-    pub fn deinit(self: *Node) void {
+    pub fn deinit(self: *const Node) void {
         _ = self;
         const deinit_status = gpa.deinit();
         if (deinit_status == .leak) std.testing.expect(false) catch @panic("Memory leaked");

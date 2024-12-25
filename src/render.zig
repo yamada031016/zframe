@@ -12,8 +12,10 @@ const RenderError = error{
 };
 
 fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+    var buffer: [32]u8 = undefined;
+    var fixedBufferAllocator = std.heap.FixedBufferAllocator.init(&buffer);
+    const allocator = fixedBufferAllocator.allocator();
+
     const src = std.fs.path.dirname(page_name) orelse return RenderError.InvalidPageFilePath; // expect "src/pages"
     const parent = std.fs.path.basename(src); // parent dir of the page component file. ex) pages/, about/
     var html_output_path: []u8 = @constCast("zig-out/html/");
@@ -33,7 +35,6 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
         while (!mem.eql(u8, std.fs.path.basename(parent_dir), "pages")) {
             html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, std.fs.path.basename(parent_dir) });
             var output_dir = try std.fs.cwd().makeOpenPath(html_output_path, .{ .iterate = true });
-            //try output_dir.chmod(0o777);
             output_dir.close();
             parent_dir = std.fs.path.dirname(parent_dir).?;
         }
@@ -47,12 +48,11 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
 pub fn render(page_name: []const u8, args: Node) !void {
     const html = generateHtmlFile("zig-out/html", page_name) catch |e| switch (e) {
         RenderError.InvalidPageFilePath => {
-            std.debug.panic("invalid file path: {s} . move below src/pages/**", .{page_name});
-            return;
+            std.log.err("{s} {s}  move below src/pages/**", .{ @errorName(e), page_name });
+            return e;
         },
-        else => return,
+        else => return e,
     };
-    //try html.chmod(0o777);
     defer html.close();
 
     const layout: ?std.fs.File = l: {
@@ -64,17 +64,23 @@ pub fn render(page_name: []const u8, args: Node) !void {
 
     try writer.writeAll("\n<body>");
     if (layout) |l| {
-        const layoutContents = try l.readToEndAlloc(std.heap.page_allocator, 1024 * 5);
+        const layoutContents = readAll: {
+            var buf: [1024 * 5]u8 = undefined;
+            const l_len = try l.readAll(&buf);
+            if (l_len < buf.len) {
+                break :readAll buf[0..l_len];
+            } else {
+                @panic("layout buffer overflow");
+            }
+        };
         const z_pos = std.mem.indexOfPos(u8, layoutContents, 0, "ℤ") orelse 0;
         try writer.writeAll(layoutContents[0..z_pos]);
-        const dom = try parse(&root, "");
-        try writer.writeAll(dom);
+        try parse(&root, writer);
         try writer.writeAll(layoutContents[z_pos + 3 ..]);
     } else {
-        const dom = try parse(&root, "");
-        try writer.writeAll(dom);
+        try parse(&root, writer);
     }
-    try writer.print("</body>", .{});
+    try writer.print("</body></html>", .{});
 
     const head_file = std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write }) catch {
         const tmp = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .read = true });
@@ -85,11 +91,7 @@ pub fn render(page_name: []const u8, args: Node) !void {
         _ = try std.fs.File.copyRangeAll(tmp, 0, html, offset, tmp_len);
         return;
     };
-    // try head_file.writer().writeAll("</head>");
-    try head_file.pwriteAll("</head>", try head_file.getEndPos());
-    // tmp.htmlはheadタグの内容を保持
-    // bodyタグを保持するhtmlをtmp.htmlに追記
-    // htmlの先頭にDOCTYPEを記述し、その分のoffsetを開けてtmp.htmlの内容をhtmlにコピーする
+
     const len = try html.getEndPos();
     var head_len = try head_file.getEndPos();
     _ = try std.fs.File.copyRangeAll(html, 0, head_file, head_len, len);
@@ -99,27 +101,29 @@ pub fn render(page_name: []const u8, args: Node) !void {
     try std.fs.cwd().deleteFile(".zig-cache/head.html");
 }
 
-fn parse(node: *const Node, buffer: []u8) ![]u8 {
-    var buf = buffer;
+fn parse(node: *const Node, writer: anytype) !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    // var buf: []u8 = buffer;
     switch (node.elem) {
         .custom => {
             if (node.is) |is| {
-                const fileName = try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/html/webcomponents/{s}.js", .{is});
+                const fileName = try std.fmt.allocPrint(allocator, "zig-out/html/webcomponents/{s}.js", .{is});
                 std.fs.cwd().access(fileName, .{}) catch recover: {
                     const output = try std.fs.cwd().createFile(fileName, .{});
                     try generateWebComponents(node, output.writer());
                     break :recover;
                 };
 
-                std.fs.cwd().access(fileName, .{}) catch {
-                    const head = try std.fs.cwd().createFile(".zig-cache/head.html", .{});
-                    const head_writer = head.writer();
-                    try head_writer.print("\n<head>", .{});
-                };
+                // std.fs.cwd().access(fileName, .{}) catch {
+                //     const head = try std.fs.cwd().createFile(".zig-cache/head.html", .{});
+                //     const head_writer = head.writer();
+                //     try head_writer.print("\n<head>", .{});
+                // };
                 var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .truncate = false });
-                const wb_loader = try std.fmt.allocPrint(std.heap.page_allocator, "<script type='module'src='webcomponents/{s}'defer></script>", .{std.fs.path.basename(fileName)});
+                const wb_loader = try std.fmt.allocPrint(allocator, "<script type='module'src='webcomponents/{s}'defer></script>", .{std.fs.path.basename(fileName)});
                 try head_output.pwriteAll(wb_loader, try head_output.getEndPos());
-                buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<div is=\"{s}\"></div>", .{ buf, is });
+                try writer.print("<div is=\"{s}\"></div>", .{is});
             } else {
                 std.debug.panic("custom element must have is field.\n{any}\n", .{node});
             }
@@ -127,38 +131,36 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
         .meta => |*meta| {
             const meta_type = meta.meta_type orelse @panic("Meta Element have no arguments");
             switch (meta_type) {
-                .charset => buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<meta charset=\"{s}\"", .{ buf, meta.charset.? }),
-                .property => buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<meta property=\"{s}\"content=\"{s}\"", .{ buf, meta.property.?, meta.content.? }),
-                else => buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<meta name=\"{s}\"content=\"{s}\"", .{ buf, meta_type.asText(), meta.content.? }),
+                .charset => try writer.print("<meta charset=\"{s}\"", .{meta.charset.?}),
+                .property => try writer.print("<meta property=\"{s}\"content=\"{s}\"", .{ meta.property.?, meta.content.? }),
+                else => try writer.print("<meta name=\"{s}\"content=\"{s}\"", .{ meta_type.asText(), meta.content.? }),
             }
-            buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}>", .{buf});
+            try writer.writeAll(">");
         },
         else => |elem| {
             const tagName = elem.getTagName();
             if (mem.eql(u8, "raw", tagName) or mem.eql(u8, "empty", tagName)) {
                 if (elem.plane.template) |temp| {
-                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}{s}", .{ buf, temp });
+                    try writer.print("{s}", .{temp});
                 }
                 for (node.children.items) |child| {
-                    buf = try parse(&child, try std.heap.page_allocator.dupe(u8, buf));
+                    try parse(&child, writer);
                 }
             } else if (mem.eql(u8, "head", tagName)) {
                 var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .read = true });
                 defer head_output.close();
                 var head_writer = head_output.writer();
-                try head_writer.print("\n<head>", .{});
-                var head_buf: []u8 = "";
+                try head_writer.writeAll("\n<head>");
                 for (node.children.items) |child| {
-                    head_buf = try parse(&child, head_buf);
+                    try parse(&child, head_writer);
                 }
-                try head_writer.print("<head>{s}</head>", .{head_buf});
-                return "";
+                try head_writer.writeAll("</head>");
             } else {
-                buf = try parseElement(node, buf);
+                try parseElement(node, writer);
                 for (node.children.items) |child| {
-                    buf = try parse(&child, try std.heap.page_allocator.dupe(u8, buf));
+                    try parse(&child, writer);
                 }
-                buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}</{s}>", .{ buf, tagName });
+                try writer.print("</{s}>", .{tagName});
             }
         },
     }
@@ -167,10 +169,10 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
         switch (loader) {
             .webassembly => |wasm| {
                 if (wasm.handler.then) |then| {
-                    try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
+                    try head_output.pwriteAll(try std.fmt.allocPrint(allocator, "<script type='text/javascript' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
                 }
                 const js = try wasm.toJavaScript();
-                try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script>{s}</script>", .{js}), try head_output.getEndPos());
+                try head_output.pwriteAll(try std.fmt.allocPrint(allocator, "<script>{s}</script>", .{js}), try head_output.getEndPos());
             },
             .javascript => {},
         }
@@ -178,15 +180,11 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
     if (node.listener.count() != 0) {
         var iter = node.listener.iterator();
         while (iter.next()) |it| {
-            // switch (it.value_ptr.target) {
-            //     .click => {
             var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .truncate = false });
             switch (it.value_ptr.content) {
                 .javascript => |js| {
-                    try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{js.filename}), try head_output.getEndPos());
-                    // try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='module' src='js/{s}'></script>", .{js.filename}), try head_output.getEndPos());
-                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<script>document.getElementsByClassName(\"{}\")[0].addEventListener(\"{s}\",()=>{{{s}()}})</script>", .{
-                        buf,
+                    try head_output.pwriteAll(try std.fmt.allocPrint(allocator, "<script type='text/javascript' src='js/{s}'></script>", .{js.filename}), try head_output.getEndPos());
+                    try writer.print("<script>document.getElementsByClassName(\"{}\")[0].addEventListener(\"{s}\",()=>{{{s}()}})</script>", .{
                         it.key_ptr.*,
                         @tagName(it.value_ptr.*.target),
                         js.func,
@@ -194,37 +192,31 @@ fn parse(node: *const Node, buffer: []u8) ![]u8 {
                 },
                 .webassembly => |wasm| {
                     if (wasm.handler.then) |then| {
-                        try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='text/javascript' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
-                        // try head_output.pwriteAll(try std.fmt.allocPrint(std.heap.page_allocator, "<script type='module' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
+                        try head_output.pwriteAll(try std.fmt.allocPrint(allocator, "<script type='text/javascript' src='js/{s}'></script>", .{then.filename}), try head_output.getEndPos());
                     }
                     const js = try wasm.toJavaScript();
-                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<script>document.addEventListener('DOMContentLoaded',()=>{{document.getElementsByClassName(\"{}\")[0].addEventListener(\"{s}\",()=>{{{s}}})}})</script>", .{
-                        buf,
+                    try writer.print("<script>document.addEventListener('DOMContentLoaded',()=>{{document.getElementsByClassName(\"{}\")[0].addEventListener(\"{s}\",()=>{{{s}}})}})</script>", .{
                         it.key_ptr.*,
                         @tagName(it.value_ptr.*.target),
                         js,
                     });
                 },
             }
-            //     },
-            //     else => {},
-            // }
         }
     }
-    return try std.heap.page_allocator.dupe(u8, buf);
+    // return try allocator.dupe(u8, buf);
 }
 
-fn parseElement(node: *const n.Node, buffer: []u8) ![]u8 {
+fn parseElement(node: *const n.Node, writer: anytype) !void {
     const tagName = node.elem.getTagName();
-    var buf = buffer;
-    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}<{s}", .{ buf, tagName });
+    try writer.print("<{s}", .{tagName});
     const nodeInfo = @typeInfo(@TypeOf(node.*));
     inline for (nodeInfo.Struct.fields) |field| {
         if (@hasField(@TypeOf(node.*), field.name)) {
             const fieldValue = @field(node.*, field.name);
             if (@TypeOf(fieldValue) == ?[]u8) {
                 if (fieldValue) |f| {
-                    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}=\"{s}\"", .{ buf, field.name, f });
+                    try writer.print(" {s}=\"{s}\"", .{ field.name, f });
                 }
             }
         }
@@ -241,8 +233,7 @@ fn parseElement(node: *const n.Node, buffer: []u8) ![]u8 {
         .td => |l| try parseElementHelper(l),
         else => @panic("unsupported element"),
     };
-    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ buf, elem_buf });
-    return try std.heap.page_allocator.dupe(u8, buf);
+    try writer.print(" {s}", .{elem_buf});
 }
 
 inline fn parseElementHelper(elem: anytype) ![]u8 {
@@ -284,7 +275,7 @@ fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
         try writer.print(webcomponents_template, .{is});
     }
     for (node.children.items) |child| {
-        try writer.writeAll(try generateJsElement(&child, ""));
+        try generateJsElement(&child, writer);
     }
     try writer.writeAll("`");
     if (node.listener.count() != 0) {
@@ -303,49 +294,20 @@ fn generateWebComponents(node: *const n.Node, writer: anytype) !void {
     try writer.writeAll("}},{extends:'div'})");
 }
 
-fn generateJsElement(node: *const n.Node, buffer: []u8) ![]u8 {
-    var buf = buffer;
-    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}{s}", .{
-        buf,
-        try parseElement(node, ""),
-    });
+fn generateJsElement(node: *const n.Node, writer: anytype) !void {
+    try parseElement(node, writer);
     for (node.children.items) |child| {
-        buf = try generateJsElement(&child, buf);
+        try generateJsElement(&child, writer);
     }
-    buf = try std.fmt.allocPrint(std.heap.page_allocator, "{s}</{s}>", .{ buf, node.elem.getTagName() });
-    return try std.heap.page_allocator.dupe(u8, buf);
+    try writer.print("</{s}>", .{node.elem.getTagName()});
 }
-// fn generateJsElement(node: n.Node) ![]const u8 {
-//     const tag = node.elem.getTagName();
-//     var buf = std.ArrayList(u8).init(std.heap.page_allocator);
-//     var writer = buf.writer();
-//     try writer.print("const {s}=document.createElement('{s}');", .{ tag, tag });
-//
-//     if (node.class) |class| {
-//         try writer.print("{s}.className='{s}';", .{ tag, class });
-//     }
-//     if (node.id) |id| {
-//         try writer.print("{s}.id='{s}';", .{ tag, id });
-//     }
-//     if (node.elem.getTemplate()) |temp| {
-//         try writer.print("{s}.textContent='{s}';", .{ tag, temp });
-//     } else |e| {
-//         std.log.debug("{s}: {s} element does not support template.\n", .{ @errorName(e), tag });
-//     }
-//     for (node.children.items) |child| {
-//         const hoge = try generateJsElement(child);
-//         try writer.writeAll(hoge);
-//     }
-//     return try buf.toOwnedSlice();
-// }
 
 pub fn config(layout: fn (Node) Node) !void {
     const cwd = std.fs.cwd();
     const layoutFile = try cwd.createFile(".zig-cache/layout.html", .{});
     const writer = layoutFile.writer();
     const raw = n.createNode(.raw).init("ℤ");
-    const dom = try parse(&layout(raw), "");
-    try writer.writeAll(dom);
+    try parse(&layout(raw), writer);
 }
 
 test "generateWebComponents" {

@@ -62,7 +62,6 @@ pub fn build(b: *std.Build) !void {
     };
     cwd.makeDir("zig-out/html/webcomponents") catch {};
     var html_dir = try cwd.openDir("zig-out/html", .{ .iterate = true });
-    try html_dir.chmod(0o777);
     defer html_dir.close();
 
     try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe }, .{ "components", components } });
@@ -97,7 +96,7 @@ fn generate_pages(b: *std.Build, run_step: *std.Build.Step, target: std.Build.Re
                 if (std.mem.eql(u8, ".zig", std.fs.path.extension(file.path))) {
                     const page_exe = b.addExecutable(.{
                         .name = std.fs.path.stem(file.path),
-                        .root_source_file = b.path(try std.fmt.allocPrintZ(allocator, "src/pages/{s}", .{file.path})),
+                        .root_source_file = b.path(try std.fmt.allocPrint(allocator, "src/pages/{s}", .{file.path})),
                         .target = target,
                         .optimize = .ReleaseSmall,
                     });
@@ -177,7 +176,7 @@ fn wasm_autobuild(b: *std.Build, allocator: std.mem.Allocator, root_dir: std.fs.
             .file => {
                 const wasm_api = b.addExecutable(.{
                     .name = std.fs.path.stem(file.path),
-                    .root_source_file = b.path(try std.fmt.allocPrintZ(allocator, "src/api/{s}", .{file.path})),
+                    .root_source_file = b.path(try std.fmt.allocPrint(allocator, "src/api/{s}", .{file.path})),
                     .target = b.resolveTargetQuery(.{
                         .cpu_arch = .wasm32,
                         .os_tag = .freestanding,

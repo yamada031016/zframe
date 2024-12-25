@@ -4,7 +4,7 @@ const w = @import("api");
 const Head = c.head.Head;
 const node = z.node;
 
-fn index() node.Node {
+pub fn index() node.Node {
     const h1 = node.createNode(.h1);
     const handler = z.handler.JsHandler{
         .then = .{
@@ -79,8 +79,4 @@ fn wasmAnalysisTable(type_sections: []w.TypeSecInfo) node.Node {
             }),
         }),
     });
-}
-
-pub fn main() !void {
-    try z.render.render(@src().file, index());
 }

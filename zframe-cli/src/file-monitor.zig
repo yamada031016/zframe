@@ -25,12 +25,12 @@ pub const FileMonitor = struct {
         switch (watch_info) {
             .create, .moveto => |path| {
                 try self.addWatcherRecursive(path);
-        std.debug.print("create ?\n",.{});
+                std.debug.print("create ?\n", .{});
                 return false;
             },
             .delete, .movefrom => |path| {
                 try self.removeWatcher(path);
-        std.debug.print("delete ?\n",.{});
+                std.debug.print("delete ?\n", .{});
                 return false;
             },
             // .movefrom, .moveto => |_| return false,
@@ -86,7 +86,7 @@ const initWatcher = switch (native_os) {
 
 fn initInotify() !Inotify {
     const fd = try std.posix.inotify_init1(0);
-    const inotify = .{
+    const inotify = Inotify{
         .fd = fd,
         .watchDirs = std.StringHashMap(i32).init(std.heap.page_allocator),
     };
@@ -94,7 +94,7 @@ fn initInotify() !Inotify {
 }
 
 fn initPolling() !Polling {
-    const polling = .{
+    const polling = Polling{
         .watchDirs = std.StringHashMap(i128).init(std.heap.page_allocator),
     };
     return polling;
@@ -106,7 +106,7 @@ const Inotify = struct {
 
     pub fn deinit(self: *Inotify) void {
         // _ = std.os.linux.inotify_rm_watch(self.fd, self.watcher);
-        _ = std.os.linux.close(self.watcher.fd);
+        _ = std.os.linux.close(self.fd);
         self.watchDirs.deinit();
     }
 
@@ -127,12 +127,12 @@ const Inotify = struct {
                 switch (event.mask) {
                     IN.CREATE | IN.ISDIR => {
                         log.info("created {s}", .{event.getName().?});
-                    const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
+                        const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                         return WatchInfo{ .create = path };
                     },
                     IN.DELETE | IN.ISDIR => {
                         log.info("deleted {s}", .{event.getName().?});
-                    const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
+                        const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                         return WatchInfo{ .delete = path };
                     },
                     IN.MODIFY => {
@@ -140,11 +140,11 @@ const Inotify = struct {
                         return WatchInfo{ .modified = {} };
                     },
                     IN.MOVED_FROM => {
-                    const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
+                        const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                         return WatchInfo{ .movefrom = path };
                     },
                     IN.MOVED_TO => {
-                    const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
+                        const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                         return WatchInfo{ .moveto = path };
                     },
                     // IN.MOVE_SELF => {
@@ -186,20 +186,18 @@ pub const Polling = struct {
         while (true) {
             var walker = try root.walk(std.heap.page_allocator);
             defer walker.deinit();
-            std.time.sleep(1 * 1_000_000_000 ); // 1 s
+            std.time.sleep(1 * 1_000_000_000); // 1 s
             while (try walker.next()) |entry| {
                 switch (entry.kind) {
                     .directory => {
-                    const dir_path = try std.fs.path.resolve(std.heap.page_allocator, &.{ path, entry.path });
+                        const dir_path = try std.fs.path.resolve(std.heap.page_allocator, &.{ path, entry.path });
                         const weight = try self.calculateDirWeight(dir_path);
                         if (self.watchDirs.get(dir_path)) |prev_weight| {
                             if (prev_weight != weight) {
-                                log.debug("{s} modified\n", .{ dir_path });
+                                log.debug("{s} modified\n", .{dir_path});
                                 try self.watchDirs.put(dir_path, weight);
                                 return .{ .modified = {} };
-                            }else{
-
-                            }
+                            } else {}
                         } else {
                             try self.watchDirs.put(dir_path, weight);
                             return .{ .create = path };
@@ -228,8 +226,8 @@ pub const Polling = struct {
                     } else |err| {
                         switch (err) {
                             error.FileNotFound => {
-                                log.err("{s} not found.\n",.{path});
-                        },
+                                log.err("{s} not found.\n", .{path});
+                            },
                             else => return err,
                         }
                     }
