@@ -15,8 +15,8 @@ fn usage_cmd() []const u8 {
         \\
         \\Commands:
         \\
-        \\  init        Initialize zin project at the current directory
-        \\  build       Build zin project
+        \\  init        Initialize zframe project at the current directory
+        \\  build       Build zframe project
         \\  update      Update all dependencies
         \\
         \\  help        Show this help messages.
@@ -118,7 +118,7 @@ fn initProject(name: []const u8) !void {
                 try project_dir.makeDir(path);
             }
         }
-        const create_paths = [_][]const u8{ "src/main.zig", "src/pages/index.zig", "src/components/components.zig", "src/components/layout.zig", "src/components/head.zig", "build.zig" };
+        const create_paths = [_][]const u8{ "src/main.zig", "src/pages/index.zig", "src/components/components.zig", "src/components/layout.zig", "src/components/head.zig", "src/api/api.zig", "build.zig" };
 
         const self_exe_path = try std.fs.selfExePathAlloc(std.heap.page_allocator);
         var cur_path: []const u8 = self_exe_path;
