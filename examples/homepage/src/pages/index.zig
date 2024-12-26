@@ -3,7 +3,7 @@ const c = @import("components");
 const Head = c.head.Head;
 const node = z.node;
 
-pub fn index() node.Node {
+fn index() node.Node {
     const h1 = node.createNode(.h1);
     const h2 = node.createNode(.h2);
     const p = node.createNode(.p);
@@ -64,4 +64,9 @@ fn card(title: []const u8, description: []const u8) node.Node {
         p.setClass("text-xl font-bold w-4/5").init(.{title}),
         p.init(.{description}),
     });
+}
+
+const Layout = @import("components").layout.Layout;
+pub fn main() !void {
+    try z.render.render(@src().file, Layout(index()));
 }
