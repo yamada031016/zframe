@@ -1,23 +1,16 @@
 const z = @import("zframe");
 const node = z.node;
 const c = @import("components");
+const Header = c.header.Header;
+const Footer = c.footer.Footer;
 
 pub fn Layout(page: node.Node) node.Node {
     const div = node.createNode(.div);
-    const raw = node.createNode(.raw);
     return div.init(.{
-        raw.init(.{
-            \\ <script>
-            \\ var con = new WebSocket("ws://localhost:5555")
-            \\ con.onopen = function(event) {
-            \\ con.onmessage = function(event) {
-            \\ window.location.reload();
-            \\ }
-            \\ }
-            \\ </script>
-        }),
         div.setClass("").init(.{
+            Header(),
             page,
         }),
+        div.setClass("mt-4").init(.{Footer()}),
     });
 }

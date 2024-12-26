@@ -25,12 +25,12 @@ pub const FileMonitor = struct {
         switch (watch_info) {
             .create, .moveto => |path| {
                 try self.addWatcherRecursive(path);
-                std.debug.print("create ?\n", .{});
+                log.debug("create ?\n", .{});
                 return false;
             },
             .delete, .movefrom => |path| {
                 try self.removeWatcher(path);
-                std.debug.print("delete ?\n", .{});
+                log.debug("delete ?\n", .{});
                 return false;
             },
             // .movefrom, .moveto => |_| return false,
@@ -51,9 +51,15 @@ pub const FileMonitor = struct {
                     const target_path = try std.fs.path.resolve(std.heap.page_allocator, &.{ dir_path, entry.path });
                     if (!self.watcher.isWatched(target_path)) {
                         try self.watcher.addWatch(target_path);
+                        log.debug("add {s} watching...\n", .{target_path});
                     }
                 },
                 else => {},
+            }
+        } else {
+            if (!self.watcher.isWatched(dir_path)) {
+                try self.watcher.addWatch(dir_path);
+                log.debug("add {s} watching...\n", .{dir_path});
             }
         }
     }
@@ -126,17 +132,17 @@ const Inotify = struct {
                 var event = @as(*std.os.linux.inotify_event, @ptrCast(@alignCast(buf[0..len])));
                 switch (event.mask) {
                     IN.CREATE | IN.ISDIR => {
-                        log.info("created {s}", .{event.getName().?});
+                        log.debug("created {s}\n", .{event.getName().?});
                         const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                         return WatchInfo{ .create = path };
                     },
                     IN.DELETE | IN.ISDIR => {
-                        log.info("deleted {s}", .{event.getName().?});
+                        log.debug("deleted {s}\n", .{event.getName().?});
                         const path = try std.fs.path.resolve(std.heap.page_allocator, &.{ root_path, event.getName().? });
                         return WatchInfo{ .delete = path };
                     },
                     IN.MODIFY => {
-                        log.info("modified {s}", .{event.getName().?});
+                        log.debug("modified {s}\n", .{event.getName().?});
                         return WatchInfo{ .modified = {} };
                     },
                     IN.MOVED_FROM => {
