@@ -14,7 +14,7 @@ pub fn index() node.Node {
     return div.setClass("text-black ").init(.{
         Head("zframe - Zig Web Frontend Framework", .{}),
         div.setClass("text-center mt-32").init(.{
-            h1.init(.{"zframe -- Web Frontend Framework"}).setClass("text-5xl text-[#2d94a0] font-black"),
+            h1.init(.{"zframe -- Zig Web Frontend Framework"}).setClass("text-5xl text-[#2d94a0] font-black"),
             p.init(.{
                 \\ Utilize Wasm easily, without any configure and technics.<br>
                 \\ zframe enable you to integrate Wasm and your Website.

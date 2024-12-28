@@ -7,8 +7,8 @@ const Footer = c.footer.Footer;
 pub fn Layout(page: node.Node) node.Node {
     const div = node.createNode(.div);
     return div.init(.{
+        Header(),
         div.setClass("").init(.{
-            Header(),
             page,
         }),
         div.setClass("mt-4").init(.{Footer()}),
