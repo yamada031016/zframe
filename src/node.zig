@@ -177,23 +177,23 @@ pub const Node = struct {
                         } else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(hyperlink.*), field.name)) {
-                                    if (field.type == @TypeOf(@field(hyperlink, field.name))) {
-                                        switch (@typeInfo(field.type)) {
-                                            .Pointer, .Array => {
-                                                if (@typeInfo(@TypeOf(@field(hyperlink, field.name))).Optional.child == []u8) {
-                                                    @field(hyperlink, field.name) = @constCast(@field(args, field.name));
-                                                }
-                                            },
-                                            .EnumLiteral => {
-                                                if (@hasField(@typeInfo(@TypeOf(@field(hyperlink, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
-                                                    @field(hyperlink, field.name) = @field(args, field.name);
-                                                }
-                                            },
-                                            else => @field(hyperlink, field.name) = @field(args, field.name),
-                                        }
-                                    } else {
-                                        std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(hyperlink, field.name)), field.type });
+                                    // if (field.type == @TypeOf(@field(hyperlink, field.name))) {
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => {
+                                            if (@typeInfo(@TypeOf(@field(hyperlink, field.name))).Optional.child == []u8) {
+                                                @field(hyperlink, field.name) = @constCast(@field(args, field.name));
+                                            }
+                                        },
+                                        .EnumLiteral => {
+                                            if (@hasField(@typeInfo(@TypeOf(@field(hyperlink, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(hyperlink, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(hyperlink, field.name) = @field(args, field.name),
                                     }
+                                    // } else {
+                                    //     std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(hyperlink, field.name)), field.type });
+                                    // }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
