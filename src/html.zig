@@ -11,7 +11,7 @@ pub const Tag = enum {
     /// raw tag works like empty tag.
     /// raw tag is used for writing raw html code.
     raw,
-    html,
+    html, body,
     head, meta, title, link, base, style,
     header, footer, main,
     span, div, article, section,
@@ -40,7 +40,7 @@ pub const Tag = enum {
             .custom => "custom",
             .empty => "empty", .raw => "raw",
             .div => "div", .article => "article", .span => "span", .section => "section",
-            .html => "html",
+            .html => "html", .body => "body",
             .head => "head", .meta => "meta", .title => "title", .link => "link", .base=>"base", .style=>"style",
             .header => "header", .footer => "footer", .main => "main",
             .h1 => "h1", .h2 => "h2", .h3 => "h3", .h4 => "h4", .h5 => "h5", .h6 => "h6",
