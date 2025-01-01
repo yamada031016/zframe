@@ -23,23 +23,25 @@ pub const Browser = struct {
         arena_allocator.deinit();
     }
 
-    pub fn openHtml(self: *Browser) !void {
+    pub fn canOpenBrowser(self: *Browser) !bool {
         switch (@import("builtin").os.tag) {
             .linux => {
                 if (std.process.getEnvVarOwned(std.heap.page_allocator, self.browser)) |_| {
-                    const cmd = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ self.browser, self.url });
-                    // try self.launch(argv);
-                    _ = try @import("main.zig").execute_command(cmd);
-                    // try self.setActiveBrowserList();
+                    return true;
                 } else |e| {
                     switch (e) {
-                        std.process.GetEnvVarOwnedError.EnvironmentVariableNotFound => std.log.err("xdg-open is not installed\n", .{}),
+                        std.process.GetEnvVarOwnedError.EnvironmentVariableNotFound => return false,
                         else => return e,
                     }
                 }
             },
-            else => @compileError("this method is unsupported on this OS"),
+            else => return false,
         }
+    }
+
+    pub fn openHtml(self: *Browser) !void {
+        const cmd = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ self.browser, self.url });
+        _ = try @import("main.zig").execute_command(cmd);
     }
 
     fn setActiveBrowserList(self: *Browser) !void {

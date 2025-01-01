@@ -66,7 +66,10 @@ fn serve(stdout: std.fs.File.Writer) !void {
     try insertWebSocketConnectionCode(manager);
 
     var browser = try Browser.init(.chrome, server.listener.listen_address.getPort());
-    try browser.openHtml();
+
+    if (try browser.canOpenBrowser()) {
+        try browser.openHtml();
+    }
     var Monitor = try FileMonitor.init(observe_dir);
     defer Monitor.deinit();
 
