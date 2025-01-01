@@ -26,12 +26,19 @@ pub const Browser = struct {
     pub fn openHtml(self: *Browser) !void {
         switch (@import("builtin").os.tag) {
             .linux => {
-                const cmd = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ self.browser, self.url });
-                // try self.launch(argv);
-                _ = try @import("main.zig").execute_command(cmd);
-                // try self.setActiveBrowserList();
+                if (std.process.getEnvVarOwned(std.heap.page_allocator, self.browser)) |_| {
+                    const cmd = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ self.browser, self.url });
+                    // try self.launch(argv);
+                    _ = try @import("main.zig").execute_command(cmd);
+                    // try self.setActiveBrowserList();
+                } else |e| {
+                    switch (e) {
+                        std.process.GetEnvVarOwnedError.EnvironmentVariableNotFound => std.log.err("xdg-open is not installed\n", .{}),
+                        else => return e,
+                    }
+                }
             },
-            else => {},
+            else => @compileError("this method is unsupported on this OS"),
         }
     }
 
