@@ -23,25 +23,14 @@ pub const Browser = struct {
         arena_allocator.deinit();
     }
 
-    pub fn canOpenBrowser(self: *Browser) !bool {
+    pub fn openHtml(self: *Browser) !void {
         switch (@import("builtin").os.tag) {
             .linux => {
-                if (std.process.getEnvVarOwned(std.heap.page_allocator, self.browser)) |_| {
-                    return true;
-                } else |e| {
-                    switch (e) {
-                        std.process.GetEnvVarOwnedError.EnvironmentVariableNotFound => return false,
-                        else => return e,
-                    }
-                }
+                const cmd = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ self.browser, self.url });
+                _ = try @import("main.zig").execute_command(cmd);
             },
-            else => return false,
+            else => {},
         }
-    }
-
-    pub fn openHtml(self: *Browser) !void {
-        const cmd = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ self.browser, self.url });
-        _ = try @import("main.zig").execute_command(cmd);
     }
 
     fn setActiveBrowserList(self: *Browser) !void {

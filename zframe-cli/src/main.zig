@@ -67,9 +67,12 @@ fn serve(stdout: std.fs.File.Writer) !void {
 
     var browser = try Browser.init(.chrome, server.listener.listen_address.getPort());
 
-    if (try browser.canOpenBrowser()) {
-        try browser.openHtml();
-    }
+    browser.openHtml() catch |e| {
+        switch (e) {
+            else => std.log.err("xdg-open is not installed\n", .{}),
+        }
+    };
+
     var Monitor = try FileMonitor.init(observe_dir);
     defer Monitor.deinit();
 
