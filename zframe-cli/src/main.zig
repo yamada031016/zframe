@@ -290,9 +290,7 @@ pub fn main() !void {
 pub fn execute_command(command: []const u8) !u32 {
     switch (tag) {
         .linux, .macos => return posixExecCmd(.{ "sh", "-c", command }),
-        .windows => {
-            return windowsExecCmd(command);
-        },
+        .windows => return windowsExecCmd(command),
         else => @panic("unsupported OS"),
     }
 }
