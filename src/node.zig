@@ -56,13 +56,20 @@ pub const Node = struct {
                                         if (@typeInfo(pointer.child) == .Array) {
                                             if (i < args.len - 1) {
                                                 // expect []const u8
-                                                plane.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
+                                                const t = @typeInfo(@TypeOf(args[i + 1]));
+                                                switch (t) {
+                                                    .Struct => |fmt_arg| {
+                                                        if (fmt_arg.is_tuple) {
+                                                            // plane.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
+                                                        } else {
+                                                            plane.*.template = @constCast(arg);
+                                                        }
+                                                    },
+                                                    else => plane.*.template = @constCast(arg),
+                                                }
                                             } else {
-                                                // expect []const u8 without format specific.
                                                 plane.*.template = @constCast(arg);
                                             }
-                                        } else if (pointer.child == u8) {
-                                            plane.*.template = @constCast(arg);
                                         }
                                     },
                                     .Struct => {
@@ -79,14 +86,10 @@ pub const Node = struct {
                         } else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(plane.*), field.name)) {
-                                    if (field.type == @TypeOf(@field(plane, field.name))) {
-                                        switch (@typeInfo(field.type)) {
-                                            .Pointer, .Array => @field(plane, field.name) = @constCast(@field(args, field.name)),
-                                            .EnumLiteral => @field(plane, field.name) = @field(args, field.name),
-                                            else => @field(plane, field.name) = @field(args, field.name),
-                                        }
-                                    } else {
-                                        std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(plane, field.name)), field.type });
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(plane, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => @field(plane, field.name) = @field(args, field.name),
+                                        else => @field(plane, field.name) = @field(args, field.name),
                                     }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
@@ -108,14 +111,10 @@ pub const Node = struct {
                         if (s.is_tuple) {} else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(image.*), field.name)) {
-                                    if (field.type == @TypeOf(@field(image, field.name))) {
-                                        switch (@typeInfo(field.type)) {
-                                            .Pointer, .Array => @field(image, field.name) = @constCast(@field(args, field.name)),
-                                            .EnumLiteral => @field(image, field.name) = @field(args, field.name),
-                                            else => @field(image, field.name) = @field(args, field.name),
-                                        }
-                                    } else {
-                                        std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(image, field.name)), field.type });
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(image, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => @field(image, field.name) = @field(args, field.name),
+                                        else => @field(image, field.name) = @field(args, field.name),
                                     }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
@@ -136,9 +135,27 @@ pub const Node = struct {
                                         if (@typeInfo(pointer.child) == .Array) {
                                             if (i < args.len - 1 and @typeInfo(@TypeOf(args[i + 1])) == .Struct) {
                                                 if (hyperlink.href) |_| {
-                                                    hyperlink.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
+                                                    const t = @typeInfo(@TypeOf(args[i + 1]));
+                                                    switch (t) {
+                                                        .Struct => |fmt_arg| {
+                                                            if (fmt_arg.is_tuple) {
+                                                                hyperlink.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
+                                                            } else {
+                                                                hyperlink.*.template = @constCast(arg);
+                                                            }
+                                                        },
+                                                        else => hyperlink.*.template = @constCast(arg),
+                                                    }
                                                 } else {
-                                                    hyperlink.*.href = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format hyper reference string."));
+                                                    const t = @typeInfo(@TypeOf(args[i + 1]));
+                                                    switch (t) {
+                                                        .Struct => |fmt_arg| {
+                                                            if (fmt_arg.is_tuple) {
+                                                                hyperlink.*.href = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format hyper reference string."));
+                                                            }
+                                                        },
+                                                        else => hyperlink.*.template = @constCast(arg),
+                                                    }
                                                     if (args.len < 3) {
                                                         hyperlink.*.template = hyperlink.*.href;
                                                     }
@@ -177,7 +194,6 @@ pub const Node = struct {
                         } else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(hyperlink.*), field.name)) {
-                                    // if (field.type == @TypeOf(@field(hyperlink, field.name))) {
                                     switch (@typeInfo(field.type)) {
                                         .Pointer, .Array => {
                                             if (@typeInfo(@TypeOf(@field(hyperlink, field.name))).Optional.child == []u8) {
@@ -191,9 +207,6 @@ pub const Node = struct {
                                         },
                                         else => @field(hyperlink, field.name) = @field(args, field.name),
                                     }
-                                    // } else {
-                                    //     std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(hyperlink, field.name)), field.type });
-                                    // }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
                                 }
@@ -229,23 +242,20 @@ pub const Node = struct {
                             }
                         } else {
                             inline for (s.fields) |field| {
-                                // if (@hasField(@TypeOf(link.*), field.name)) {
                                 if (@hasField(@TypeOf(link.*), field.name)) {
-                                    if (field.type == @TypeOf(@field(link, field.name))) {
-                                        switch (@typeInfo(field.type)) {
-                                            .Pointer, .Array => @field(link, field.name) = @constCast(@field(args, field.name)),
-                                            .EnumLiteral => {
-                                                // fields with the same name across different elements be mistakenly assigned
-                                                // to fields in all elements that have same field name.
-                                                // Ensure that field types are consistent to avoid mismatches.
-                                                if (@hasField(@typeInfo(@TypeOf(@field(link, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
-                                                    @field(link, field.name) = @field(args, field.name);
-                                                }
-                                            },
-                                            else => @field(link, field.name) = @field(args, field.name),
-                                        }
-                                    } else {
-                                        std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(link, field.name)), field.type });
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => {
+                                            @field(link, field.name) = @constCast(@field(args, field.name));
+                                        },
+                                        .EnumLiteral => {
+                                            // fields with the same name across different elements be mistakenly assigned
+                                            // to fields in all elements that have same field name.
+                                            // Ensure that field types are consistent to avoid mismatches.
+                                            if (@hasField(@typeInfo(@TypeOf(@field(link, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(link, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(link, field.name) = @field(args, field.name),
                                     }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, field.name);
@@ -286,14 +296,10 @@ pub const Node = struct {
                         } else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(meta.*), field.name)) {
-                                    if (field.type == @TypeOf(@field(meta, field.name))) {
-                                        switch (@typeInfo(field.type)) {
-                                            .Pointer, .Array => @field(meta, field.name) = @constCast(@field(args, field.name)),
-                                            .EnumLiteral => @field(meta, field.name) = @field(args, field.name),
-                                            else => @field(meta, field.name) = @field(args, field.name),
-                                        }
-                                    } else {
-                                        std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(meta, field.name)), field.type });
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(meta, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => @field(meta, field.name) = @field(args, field.name),
+                                        else => @field(meta, field.name) = @field(args, field.name),
                                     }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, args);
@@ -323,26 +329,19 @@ pub const Node = struct {
                         } else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(form.*), field.name)) {
-                                    if (field.type == @TypeOf(@field(form, field.name))) {
-                                        switch (@typeInfo(field.type)) {
-                                            .Pointer, .Array => {
-                                                @field(form, field.name) = @constCast(@field(args, field.name));
-                                                if (@hasField(@typeInfo(@TypeOf(@field(form, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
-                                                    @field(form, field.name) = @field(args, field.name);
-                                                }
-                                            },
-                                            .EnumLiteral => {
-                                                // fields with the same name across different elements be mistakenly assigned
-                                                // to fields in all elements that have same field name.
-                                                // Ensure that field types are consistent to avoid mismatches.
-                                                if (@hasField(@typeInfo(@TypeOf(@field(form, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
-                                                    @field(form, field.name) = @field(args, field.name);
-                                                }
-                                            },
-                                            else => @field(form, field.name) = @field(args, field.name),
-                                        }
-                                    } else {
-                                        std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(form, field.name)), field.type });
+                                    switch (@typeInfo(@typeInfo(@TypeOf(@field(form, field.name))).Optional.child)) {
+                                        .Pointer, .Array => {
+                                            @field(form, field.name) = @constCast(@field(args, field.name));
+                                        },
+                                        .EnumLiteral => {
+                                            // fields with the same name across different elements be mistakenly assigned
+                                            // to fields in all elements that have same field name.
+                                            // Ensure that field types are consistent to avoid mismatches.
+                                            if (@hasField(@typeInfo(@TypeOf(@field(form, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(form, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => {},
                                     }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, field.name);
@@ -359,21 +358,17 @@ pub const Node = struct {
                         if (s.is_tuple) {} else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(input.*), field.name)) {
-                                    if (field.type == @TypeOf(@field(input, field.name))) {
-                                        switch (@typeInfo(field.type)) {
-                                            .Pointer, .Array => @field(input, field.name) = @constCast(@field(args, field.name)),
-                                            .EnumLiteral => {
-                                                // fields with the same name across different elements be mistakenly assigned
-                                                // to fields in all elements that have same field name.
-                                                // Ensure that field types are consistent to avoid mismatches.
-                                                if (@hasField(@typeInfo(@TypeOf(@field(input, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
-                                                    @field(input, field.name) = @field(args, field.name);
-                                                }
-                                            },
-                                            else => @field(input, field.name) = @field(args, field.name),
-                                        }
-                                    } else {
-                                        std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(input, field.name)), field.type });
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(input, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => {
+                                            // fields with the same name across different elements be mistakenly assigned
+                                            // to fields in all elements that have same field name.
+                                            // Ensure that field types are consistent to avoid mismatches.
+                                            if (@hasField(@typeInfo(@TypeOf(@field(input, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(input, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(input, field.name) = @field(args, field.name),
                                     }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, field.name);
@@ -390,18 +385,14 @@ pub const Node = struct {
                         if (s.is_tuple) {} else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(tablecol.*), field.name)) {
-                                    if (field.type == @TypeOf(@field(tablecol, field.name))) {
-                                        switch (@typeInfo(field.type)) {
-                                            .Pointer, .Array => @field(tablecol, field.name) = @constCast(@field(args, field.name)),
-                                            .EnumLiteral => {
-                                                if (@hasField(@typeInfo(@TypeOf(@field(tablecol, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
-                                                    @field(tablecol, field.name) = @field(args, field.name);
-                                                }
-                                            },
-                                            else => @field(tablecol, field.name) = @field(args, field.name),
-                                        }
-                                    } else {
-                                        std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(tablecol, field.name)), field.type });
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(tablecol, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => {
+                                            if (@hasField(@typeInfo(@TypeOf(@field(tablecol, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(tablecol, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(tablecol, field.name) = @field(args, field.name),
                                     }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, field.name);
@@ -418,18 +409,14 @@ pub const Node = struct {
                         if (s.is_tuple) {} else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(th.*), field.name)) {
-                                    if (field.type == @TypeOf(@field(th, field.name))) {
-                                        switch (@typeInfo(field.type)) {
-                                            .Pointer, .Array => @field(th, field.name) = @constCast(@field(args, field.name)),
-                                            .EnumLiteral => {
-                                                if (@hasField(@typeInfo(@TypeOf(@field(th, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
-                                                    @field(th, field.name) = @field(args, field.name);
-                                                }
-                                            },
-                                            else => @field(th, field.name) = @field(args, field.name),
-                                        }
-                                    } else {
-                                        std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(th, field.name)), field.type });
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(th, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => {
+                                            if (@hasField(@typeInfo(@TypeOf(@field(th, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(th, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(th, field.name) = @field(args, field.name),
                                     }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, field.name);
@@ -453,18 +440,14 @@ pub const Node = struct {
                         if (s.is_tuple) {} else {
                             inline for (s.fields) |field| {
                                 if (@hasField(@TypeOf(td.*), field.name)) {
-                                    if (field.type == @TypeOf(@field(td, field.name))) {
-                                        switch (@typeInfo(field.type)) {
-                                            .Pointer, .Array => @field(td, field.name) = @constCast(@field(args, field.name)),
-                                            .EnumLiteral => {
-                                                if (@hasField(@typeInfo(@TypeOf(@field(td, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
-                                                    @field(td, field.name) = @field(args, field.name);
-                                                }
-                                            },
-                                            else => @field(td, field.name) = @field(args, field.name),
-                                        }
-                                    } else {
-                                        std.log.debug("invalid parameter: {s} field value expect {any}, but found {any}\n", .{ field.name, @TypeOf(@field(td, field.name)), field.type });
+                                    switch (@typeInfo(field.type)) {
+                                        .Pointer, .Array => @field(td, field.name) = @constCast(@field(args, field.name)),
+                                        .EnumLiteral => {
+                                            if (@hasField(@typeInfo(@TypeOf(@field(td, field.name))).Optional.child, @tagName(@field(args, field.name)))) {
+                                                @field(td, field.name) = @field(args, field.name);
+                                            }
+                                        },
+                                        else => @field(td, field.name) = @field(args, field.name),
                                     }
                                 } else {
                                     self.fatal(NodeError.invalidArgs, field.name);
@@ -491,7 +474,17 @@ pub const Node = struct {
                                     .Pointer => |pointer| {
                                         if (@typeInfo(pointer.child) == .Array) {
                                             if (i < args.len - 1) {
-                                                custom.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                                const t = @typeInfo(@TypeOf(args[i + 1]));
+                                                switch (t) {
+                                                    .Struct => |fmt_arg| {
+                                                        if (fmt_arg.is_tuple) {
+                                                            custom.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("hoge"));
+                                                        } else {
+                                                            custom.*.template = @constCast(arg);
+                                                        }
+                                                    },
+                                                    else => custom.*.template = @constCast(arg),
+                                                }
                                             } else {
                                                 custom.*.template = @constCast(arg);
                                             }
