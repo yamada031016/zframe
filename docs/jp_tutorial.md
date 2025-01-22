@@ -20,21 +20,20 @@ zigのインストールは以下を参照してください。
 
 zframe CLIのビルド（任意）
 ```sh
-git clone https://github.com/yamada031016/zframe-dev-utils.git
-cd zframe-dev-utils
+cd zframe/zframe-cli
 zig build -Doptimize=ReleaseSmall
 ```
 zframe CLIのaliasを設定（任意）
 ```sh
-echo "alias zframe = <your dir>/zframe-dev-utils/zig-out/bin/zframe > ~/.bashrc
+echo "alias zframe = <your dir>/zframe-dev-utils/zig-out/bin/zfc > ~/.bashrc
 ```
 zframe CLIの動作確認（任意）
 ```sh
-zframe help
+zfc help
 ```
 ### プロジェクト作成
 ```sh
-zframe init zframe-tutorial
+zfc init zframe-tutorial
 ```
 または
 ```sh
@@ -45,7 +44,7 @@ rm -rf .git
 ```
 プロジェクトが作成できたので、ビルドをしてみましょう！
 ```sh
-zframe build serve
+zfc build serve
 ```
 または
 ```sh

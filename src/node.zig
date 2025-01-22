@@ -60,7 +60,7 @@ pub const Node = struct {
                                                 switch (t) {
                                                     .Struct => |fmt_arg| {
                                                         if (fmt_arg.is_tuple) {
-                                                            // plane.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
+                                                            plane.*.template = @constCast(std.fmt.allocPrint(alloc, arg, args[i + 1]) catch @panic("failed to format template string."));
                                                         } else {
                                                             plane.*.template = @constCast(arg);
                                                         }

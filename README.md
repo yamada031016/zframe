@@ -1,9 +1,9 @@
 # zframe
-zframe is Web frontend framework written in for modern website.  
+zframe is Web frontend framework for modern website with WebAssembly.
 It has unique components system, modern useful features and interfaces integrating wasm on your app easily.
 
 ## Install
-NOTE: I tested to build it on Linux and used Zig version 0.14 (master) at the moment.
+NOTE: zframe supports only zig v0.13.0, and I tested to build at Linux and Windows.
 ```sh
 git clone https://github.com/yamada031016/zframe
 # build cli tool
@@ -12,18 +12,19 @@ zig build -Doptimize=ReleaseFast
 ```
 
 ## Get Started
-You can initialize first website using zframe with a few minutes.  
+You can initialize first website using zframe with a few minutes.
 First, you execute below command to create and initialize your project.
+NOTE: You should register your zfc path (zframe/zframe-cli/zig-out/bin/zfc)
 ```sh
-zframe init zframe-demo
+zfc init zframe-demo
 ```
-Then, you can find a directory named zframe-demo at current directory.  
+Then, you can find a directory named zframe-demo at current directory.
 Let's move to this project directory, and built it!
 ```sh
 cd zframe-demo
-zframe build serve
+zfc build serve
 ```
-You already have launched a browser, your website will open immediately.  
+You already have launched a browser, your website will open immediately.
 Otherwise, you can open your website to click URL on the terminal.
 
 Well done!
@@ -41,5 +42,5 @@ We have some examples at `examples/`, you can move to each project directory and
   - hot-reload ...
 - SSG and CSR
 - Web components
-- partially JavaScript support (at the moment, quite simple)
-- Webassembly integration (at the moment, quite simple)
+- partially JavaScript support (quite simple)
+- Webassembly integration (quite simple)

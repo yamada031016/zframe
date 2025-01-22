@@ -81,7 +81,7 @@ fn serve(stdout: std.fs.File.Writer) !void {
     _ = try std.Thread.spawn(.{}, WebSocketManager.connect, .{@constCast(&manager)});
     while (true) {
         if (try Monitor.detectChanges()) {
-            const status = try execute_command("zig build run");
+            const status = execute_command("zig build run") catch |e| std.debug.panic("build error: {any}", .{e});
             if (status == 0) {
                 try insertWebSocketConnectionCode(manager);
                 try stdout.print("\x1B[1;92mBUILD SUCCESS.\x1B[m\n", .{});

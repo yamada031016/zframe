@@ -29,6 +29,7 @@ const convert = (obj) => {
 }
 
 const wasm = async (obj) => {
+  const load = performance.now();
   const fileInput = this.document.getElementById("input");
 
   const file = fileInput.files[0];
@@ -40,21 +41,20 @@ const wasm = async (obj) => {
   const offset = 0
   const wasm_data = new Uint8Array(wasmBinary);
   memoryBuffer.set(wasm_data, offset);
-  console.log("memoryBuffer", memoryBuffer)
+  //console.log("memoryBuffer", memoryBuffer)
 
   const start = performance.now();
   const len = obj.instance.exports.wasmAnalyze(offset, wasm_data.length);
-  const function_time = performance.now() - start
-  console.log("function time: [ms]", (function_time));
-  console.log("len", len)
+  const function_time = performance.now() - start;
+  //console.log("len", len)
 
   const newBuffer = new Uint8Array(memory.buffer, obj.instance.exports.MEMORY.value, 65536);
-  console.log("newBuffer", newBuffer)
-  console.log("wasm", wasmBinary.byteLength)
-  console.log("hoge", newBuffer.length)
+  //console.log("newBuffer", newBuffer)
+  //console.log("wasm", wasmBinary.byteLength)
+  //console.log("hoge", newBuffer.length)
   const res_len = newBuffer[wasm_data.length];
   const res = newBuffer.slice(wasm_data.length + 1, wasm_data.length + 1 + len);
-  console.log("res", res_len, res)
+  //console.log("res", res_len, res)
 
   const type_section_list = []
   var buffer_offset = 0;
@@ -63,7 +63,7 @@ const wasm = async (obj) => {
     buffer_offset += len;
     type_section_list.push(type_section);
   }
-  console.log("type_section_list", type_section_list)
+  //console.log("type_section_list", type_section_list)
 
   const analysisTable = document.querySelector('div[is="analysis-table"]');
   if (analysisTable) {
@@ -71,6 +71,7 @@ const wasm = async (obj) => {
   } else {
     console.error('Element not found: div[is="analysis-table"]');
   }
+  console.log(`function_time: ${function_time} / total: ${performance.now() - load}`);
 }
 
 class TypeSecInfo {

@@ -10,9 +10,9 @@ pub fn Footer() Node {
     const epoch = std.time.epoch.EpochSeconds{ .secs = @intCast(std.time.timestamp()) };
     const year = epoch.getEpochDay().calculateYearDay();
 
-    const copyright = div.init(.{ "SecHack365 &copy;{}", .{year.year} });
+    const copyright = div.init(.{ "&copy;{} zFrame.", .{year.year} });
 
-    return footer.setClass("border-t border-300-cyan pt-4").init(.{
-        copyright.setClass("pb-2 text-sm text-center"),
+    return footer.setClass("py-8 text-center text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800").init(.{
+        copyright,
     });
 }
