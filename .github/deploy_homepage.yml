@@ -1,0 +1,32 @@
+name: Deploy Homepage
+
+on:
+  push:
+    paths:
+      - "examples/homepage/**"
+    branches:
+      - main  # 必要に応じて変更
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Zig
+        uses: korandoru/setup-zig@v1
+        with:
+          zig-version: master
+
+      - name: Build homepage
+        run: |
+          cd examples/homepage
+          zig build run
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: examples/homepage/zig-out/html  # Zig の build 出力先に合わせて変更
