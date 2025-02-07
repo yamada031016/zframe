@@ -4,9 +4,9 @@ const Node = node.Node;
 
 const nav_list = [_][2][]const u8{
     [_][]const u8{ "/about", "About us" },
-    [_][]const u8{ "/Documentation", "Documentation" },
-    [_][]const u8{ "/Downloads", "Downloads" },
-    [_][]const u8{ "/about/contact", "Contact" },
+    // [_][]const u8{ "/Documentation", "Documentation" },
+    [_][]const u8{ "https://github.com/yamada031016/zframe", "GitHub" },
+    // [_][]const u8{ "/about/contact", "Contact" },
 };
 
 pub fn Header() Node {
@@ -19,7 +19,10 @@ pub fn Header() Node {
     return header.setClass("bg-opacity-80 backdrop-blur-lg bg-white shadow-lg dark:bg-gray-800").init(.{
         inline for (nav_list) |n| {
             nav.addChild(
-                a.init(.{ .href = n[0], .template = n[1] }).setClass("hover:text-black dark:hover:text-white transition"),
+                a.init(.{
+                    .href = n[0],
+                    .template = n[1],
+                }).setClass("hover:text-black dark:hover:text-white transition"),
             );
         },
         div.setClass("flex justify-between items-center py-4 px-8").init(.{

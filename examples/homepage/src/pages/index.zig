@@ -59,7 +59,7 @@ fn HeroSection() node.Node {
     return section.setClass("text-center py-16 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800").init(.{
         h2.setClass("font-[Orbitron] text-6xl font-extrabold text-gray-900 dark:text-gray-200").setId("hero-title").init(.{
             "Welcome to ",
-            span.setClass("font-[Orbitron] text-9xl bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 bg-clip-text text-transparent").init("zFrame"),
+            span.setClass("font-[Orbitron] text-8xl bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 bg-clip-text text-transparent").init("zFrame"),
         }),
         p.setClass("mt-4 text-xl text-gray-600 dark:text-gray-400").init("The framework that transcends boundaries."),
         div.setClass("flex justify-center gap-20 mt-12").init(.{
@@ -144,7 +144,7 @@ fn FAQ() node.Node {
     const QA = struct { question: []const u8, answer: []const u8 };
     const qa = [_]QA{
         .{ .question = "What is zFrame?", .answer = "zframe is a bold experiment in modern Web development—a Zig-powered frontend framework that lets you harness WebAssembly without worrying about layers or boundaries." },
-        .{ .question = "Do I need to know Zig?", .answer = "" },
+        .{ .question = "Do I need to know Zig?", .answer = "You could get started with just the official Zig brief tutorial—if you enjoy living on the edge. But honestly, learning the Zig language properly is a smart move, and we highly recommend it!" },
     };
 
     return section.setId("faq").setClass("py-16 px-8").init(.{

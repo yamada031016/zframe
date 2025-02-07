@@ -1,5 +1,6 @@
 zig-out
-zig-out/
+zig-out/*
+!examples/homepage/zig-out/html
 .zig-cache
 .zig-cache/
 build.zig.zon

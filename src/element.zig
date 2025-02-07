@@ -327,10 +327,10 @@ pub const Form = struct {
         search,
     } = null,
     target: ?enum {
-        _blank,
-        _self,
-        _parent,
-        _top,
+        blank,
+        self,
+        parent,
+        top,
     } = null,
 };
 
