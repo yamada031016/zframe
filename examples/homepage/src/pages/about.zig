@@ -10,5 +10,6 @@ pub fn about() node.Node {
     return div.init(.{
         Head("about zframe", .{}),
         p.init("under development"),
+        p.init("Hold on a second!"),
     });
 }
