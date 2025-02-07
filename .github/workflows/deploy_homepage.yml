@@ -5,7 +5,7 @@ on:
     paths:
       - "examples/homepage/**"
     branches:
-      - main  # 必要に応じて変更
+      - master
 
 jobs:
   build-and-deploy:
