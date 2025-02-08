@@ -58,8 +58,18 @@ pub fn build(b: *std.Build) !void {
     try wasm_autobuild(b, allocator, html_dir);
 
     const js_dir = try html_dir.makeOpenPath("js", .{});
-    try move_contents(allocator, "src/js", js_dir);
-    try move_contents(allocator, "public", html_dir);
+    move_contents(allocator, "src/js", js_dir) catch |err| {
+        switch (err) {
+            error.FileNotFound => std.log.err("src/js not found.\n", .{}),
+            else => std.log.err("{s}\n", .{@errorName(err)}),
+        }
+    };
+    move_contents(allocator, "public", html_dir) catch |err| {
+        switch (err) {
+            error.FileNotFound => std.log.err("public not found.\n", .{}),
+            else => std.log.err("{s}\n", .{@errorName(err)}),
+        }
+    };
 
     const exe_unit_tests = b.addTest(.{
         .root_source_file = b.path("src/main.zig"),
