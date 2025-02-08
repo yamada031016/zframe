@@ -8,10 +8,6 @@ const convert = (obj) => {
   const encoder = new TextEncoder();
   const encodedData = encoder.encode(inputValue.value);
 
-  // メモリへの書き込み先のオフセット
-  //console.log(offset);
-
-  // メモリにデータをコピー
   const offset = 0
   memoryBuffer.set(encodedData, offset);
   console.log(Object.keys(obj.instance.exports));
@@ -71,6 +67,7 @@ const wasm = async (obj) => {
   } else {
     console.error('Element not found: div[is="analysis-table"]');
   }
+
   console.log(`function_time: ${function_time} / total: ${performance.now() - load}`);
 }
 

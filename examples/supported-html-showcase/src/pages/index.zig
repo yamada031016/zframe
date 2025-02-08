@@ -14,9 +14,9 @@ fn index() node.Node {
             node.createNode(.title).init(.{"zframe - Zig Web Frontend Framework"}),
             node.createNode(.meta).init(.{ .description, "zFrame is Zig Web Frontend Framework." }),
             node.createNode(.meta).init(.{ .charset, "utf-8" }),
-            node.createNode(.raw).init(.{
-                \\<script src="https://cdn.tailwindcss.com"></script>
-            }),
+            // node.createNode(.raw).init(.{
+            //     \\<script src="https://cdn.tailwindcss.com"></script>
+            // }),
             node.createNode(.empty).init(.{}).iterate(.{}),
         }),
         node.createNode(.custom).define("only-one").init("custom element"),
@@ -71,11 +71,6 @@ fn index() node.Node {
                         node.createNode(.summary).init("sumarry"),
                     }),
                 }),
-                node.createNode(.h2).init("h2"),
-                node.createNode(.h3).init("h3"),
-                node.createNode(.h4).init("h4"),
-                node.createNode(.h5).init("h5"),
-                node.createNode(.h6).init("h6"),
                 node.createNode(.a).init(.{ "/", .{}, "index page" }),
                 node.createNode(.a).init(.{
                     .href = "/about",

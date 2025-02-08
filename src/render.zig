@@ -133,7 +133,7 @@ fn parse(node: *const Node, writer: anytype) !void {
             switch (meta_type) {
                 .charset => try writer.print("<meta charset=\"{s}\"", .{meta.charset.?}),
                 .property => try writer.print("<meta property=\"{s}\"content=\"{s}\"", .{ meta.property.?, meta.content.? }),
-                else => try writer.print("<meta name=\"{s}\"content=\"{s}\"", .{ meta_type.asText(), meta.content.? }),
+                else => try writer.print("<meta name=\"{s}\"content=\"{s}\"", .{ @tagName(meta_type), meta.content.? }),
             }
             try writer.writeAll(">");
         },

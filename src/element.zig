@@ -81,8 +81,6 @@ pub const Element = union(ElementType) {
     }
 };
 
-// add functions for checking validation.
-
 /// This structure represents Generic HTML Element such as h1, p, and so on.
 pub const PlaneElement = struct {
     const Directionality = enum { leftToRight, RightToLeft, Auto };
@@ -216,28 +214,24 @@ pub const Meta = struct {
     pub const MetaType = enum {
         charset,
 
+        application_name,
+        author,
+        generator,
+        referrer,
+        color_scheme,
+        creator,
+        googlebot,
+        publisher,
+        robots,
         description,
         viewport,
         keywords,
         property,
+        http_equiv,
         twitter_card,
         twitter_site,
         twitter_creator,
         theme_color,
-
-        pub fn asText(meta: *const MetaType) []const u8 {
-            return switch (meta.*) {
-                .charset => "charset",
-                .description => "description",
-                .viewport => "viewport",
-                .keywords => "keywords",
-                .property => "property",
-                .twitter_card => "twitter_card",
-                .twitter_site => "twitter_site",
-                .twitter_creator => "twitter_creator",
-                .theme_color => "theme_color",
-            };
-        }
     };
 };
 

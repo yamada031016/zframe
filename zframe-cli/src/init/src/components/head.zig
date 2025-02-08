@@ -13,6 +13,8 @@ pub fn Head(page_name: []const u8, contents: anytype) node.Node {
         title.init(.{page_name}),
         meta.init(.{ .description, "zFrame is Zig Web Frontend Framework." }),
         meta.init(.{ .charset, "utf-8" }),
+        meta.init(.{ .viewport, "width=device-width, initial-scale=1.0" }),
+        meta.init(.{ .robots, "index, follow" }),
         raw.init(.{
             \\<script src="https://cdn.tailwindcss.com"></script>
         }),

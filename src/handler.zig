@@ -90,7 +90,7 @@ pub const EventListener = struct {
         passive,
         signal,
         useCapture,
-        wantsUntrusted, // firefox only
+        wantsUntrusted, // only firefox performs
     };
 };
 
