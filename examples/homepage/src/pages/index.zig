@@ -68,11 +68,11 @@ fn HeroSection() node.Node {
                 .href = "https://github.com/yamada031016/zframe/blob/master/docs/tutorial.md",
                 .template = "Get Started",
             }),
-            a.setClass("mt-8 inline-block py-3 px-6 bg-pink-500 text-white font-bold rounded shadow-lg hover:bg-pink-600 dark:bg-pink-700 dark:hover:bg-pink-600 transition").init(.{
-                .target = .blank,
-                .href = "about",
-                .template = "Explore Features",
-            }),
+            // a.setClass("mt-8 inline-block py-3 px-6 bg-pink-500 text-white font-bold rounded shadow-lg hover:bg-pink-600 dark:bg-pink-700 dark:hover:bg-pink-600 transition").init(.{
+            //     .target = .blank,
+            //     .href = "about",
+            //     .template = "Explore Features",
+            // }),
         }),
     });
 }
