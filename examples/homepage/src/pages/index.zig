@@ -8,9 +8,9 @@ pub fn index() node.Node {
 
     return main.init(.{
         Head("zframe", .{}),
-        HeroSection(),
-        FeatureSection(),
-        RoadMapSection(),
+        Hero(),
+        Feature(),
+        RoadMap(),
         FAQ(),
         codeline("Expressive components system",
             \\const z = @import("zframe")
@@ -48,7 +48,7 @@ pub fn index() node.Node {
     });
 }
 
-fn HeroSection() node.Node {
+fn Hero() node.Node {
     const h2 = node.createNode(.h2);
     const p = node.createNode(.p);
     const div = node.createNode(.div);
@@ -69,21 +69,21 @@ fn HeroSection() node.Node {
                 .template = "Get Started",
             }),
             // a.setClass("mt-8 inline-block py-3 px-6 bg-pink-500 text-white font-bold rounded shadow-lg hover:bg-pink-600 dark:bg-pink-700 dark:hover:bg-pink-600 transition").init(.{
-            //     .target = .blank,
-            //     .href = "about",
-            //     .template = "Explore Features",
-            // }),
+            //     //     .target = .blank,
+            //     //     .href = "about",
+            //     //     .template = "Explore Features",
+            //     // }),
         }),
     });
 }
 
-const Feature = struct { name: []const u8, detail: []const u8 };
-fn FeatureSection() node.Node {
+const feature = struct { name: []const u8, detail: []const u8 };
+fn Feature() node.Node {
     const h2 = node.createNode(.h2);
     const div = node.createNode(.div).init(.{});
     const section = node.createNode(.section);
 
-    const feature_list = [_]Feature{
+    const feature_list = [_]feature{
         .{ .name = "Component System", .detail = "Build modern Web apps with Zig’s expressive component framework." },
         .{ .name = "Built-in Optimizations", .detail = "Automatic Wasm optimizations are all built-in" },
         .{ .name = "Tailwind CSS Support", .detail = "Tailwind CSS support. Currently through only Play CDN" },
@@ -104,17 +104,17 @@ fn FeatureSection() node.Node {
     });
 }
 
-fn FeatureArticle(feature: Feature) node.Node {
+fn FeatureArticle(feat: feature) node.Node {
     const h3 = node.createNode(.h3);
     const article = node.createNode(.article);
     const p = node.createNode(.p);
     return article.setClass("bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-md text-center").init(.{
-        h3.setClass("text-2xl font-bold text-gray-900 dark:text-gray-100").init(feature.name),
-        p.setClass("mt-4 text-gray-600 dark:text-gray-400").init(feature.detail),
+        h3.setClass("text-2xl font-bold text-gray-900 dark:text-gray-100").init(feat.name),
+        p.setClass("mt-4 text-gray-600 dark:text-gray-400").init(feat.detail),
     });
 }
 
-fn RoadMapSection() node.Node {
+fn RoadMap() node.Node {
     const h2 = node.createNode(.h2);
     const ul = node.createNode(.ul);
     const li = node.createNode(.li);
@@ -128,7 +128,7 @@ fn RoadMapSection() node.Node {
         ul.setClass("mt-8 space-y-4 text-gray-700 dark:text-gray-300 list-disc pl-12").init(.{
             li.setClass("text-lg").init("2024 Q1 - Initial Release"),
             li.setClass("text-lg").init("2024 Q2 - Feature Expansion"),
-            li.setClass("text-lg").init("2025 - Community Integration"),
+            li.setClass("text-lg").init("2025 - Publish homepage"),
         }),
     });
 }
