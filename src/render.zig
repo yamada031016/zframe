@@ -61,11 +61,7 @@ pub fn mdToHtml(file_path: []const u8) !void {
 
     const result = try markdown.parser.parse_markdown(md_buf[0..idx]);
 
-    const writer = std.io.getStdOut().writer();
-    // or
-    // const html = try std.fs.cwd().createFile("md.html", .{});
-    // const writer = html.writer();
-
+    const writer = html.writer();
     var hc = markdown.html.converter(writer);
     try hc.mdToHTML(result.result);
 }

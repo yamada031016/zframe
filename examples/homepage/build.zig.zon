@@ -25,7 +25,7 @@
     .dependencies = .{
         .zframe = .{
             .url = "https://github.com/yamada031016/zframe/archive/refs/heads/master.tar.gz",
-            .hash = "122014335867aba7f7f858f78fe042138baf953f0a845b6c6c86c195fa20033c3266",
+            .hash = "1220b67d59bd4b6f61748a7a532131760f5e99e0dc4f7e6b4d539b23bec22e33baed",
         },
         .@"markdown-zig" = .{
             .url = "https://github.com/yamada031016/markdown-zig/archive/refs/heads/master.tar.gz",
