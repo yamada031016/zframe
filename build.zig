@@ -26,13 +26,13 @@ pub fn build(b: *std.Build) !void {
     });
     lib.root_module.addImport("zframe", zframe_mod);
 
-    const md = b.dependency("markdown-zig", .{
+    const md = b.dependency("markdown", .{
         .target = target,
         .optimize = .ReleaseFast,
     });
-    lib.root_module.addImport("markdown-zig", md.module("markdown-zig"));
-    exe.root_module.addImport("markdown-zig", md.module("markdown-zig"));
-    zframe_mod.addImport("markdown-zig", md.module("markdown-zig"));
+    lib.root_module.addImport("markdown-zig", md.module("markdown"));
+    exe.root_module.addImport("markdown-zig", md.module("markdown"));
+    zframe_mod.addImport("markdown-zig", md.module("markdown"));
 
     // const wasm_analyzer_optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
     // const wasm_analyzer = b.dependency("wasm-binary-analyzer", .{
