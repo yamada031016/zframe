@@ -1,0 +1,25 @@
+.{
+    .name = "zframe",
+
+    .version = "0.1.0",
+
+    .dependencies = .{
+        .@"wasm-binary-analyzer" = .{
+            .url = "https://github.com/yamada031016/wasm-binary-analyzer/archive/refs/heads/main.tar.gz",
+            .hash = "122014b117a02762cb287ce163d7f5d3632aa81652ca481cf9b40d05f48a7275055b",
+        },
+        .@"markdown-zig" = .{
+            .url = "https://github.com/yamada031016/markdown-zig/archive/refs/heads/master.tar.gz",
+            .hash = "122022b2e1c18af08b1b9023ca3061d597d7ecb448b0b0cbb0525bf500f1db566125",
+        },
+        .markdown = .{
+            .url = "https://github.com/yamada031016/markdown-zig/archive/refs/heads/master.tar.gz",
+            .hash = "1220e1d03d942606aeccdeac363d0990b18b640500646ee91374e95c5b50d786c324",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
