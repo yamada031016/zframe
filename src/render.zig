@@ -5,8 +5,7 @@ const element = @import("element.zig");
 const Element = element.Element;
 const n = @import("node.zig");
 const Node = n.Node;
-
-const markdown = @import("markdown-zig");
+const markdown = @import("zframe.zig").markdown;
 
 const RenderError = error{
     InvalidPageFilePath,

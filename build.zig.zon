@@ -14,7 +14,7 @@
         },
         .markdown = .{
             .url = "https://github.com/yamada031016/markdown-zig/archive/refs/heads/master.tar.gz",
-            .hash = "1220e1d03d942606aeccdeac363d0990b18b640500646ee91374e95c5b50d786c324",
+            .hash = "1220706ef2ea09db570e23a66e20c0343afa98269cd5a55aac3aa39f7e695e13aaa0",
         },
     },
     .paths = .{

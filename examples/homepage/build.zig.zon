@@ -25,11 +25,15 @@
     .dependencies = .{
         .zframe = .{
             .url = "https://github.com/yamada031016/zframe/archive/refs/heads/master.tar.gz",
-            .hash = "12202a2ca10528910d62e114855dfe7ff460e1217e890a3c561fb6d68e46dd54ebb2",
+            .hash = "12203641a21467858a390255291eb252190cc72732fe7a67ce17e6991aec89040235",
         },
         .@"markdown-zig" = .{
             .url = "https://github.com/yamada031016/markdown-zig/archive/refs/heads/master.tar.gz",
             .hash = "122013ab48a48708b863636ea139e7b4dfa6a382785e1f7e05122e4e7109745f031d",
+        },
+        .markdown = .{
+            .url = "https://github.com/yamada031016/markdown-zig/archive/refs/heads/master.tar.gz",
+            .hash = "1220706ef2ea09db570e23a66e20c0343afa98269cd5a55aac3aa39f7e695e13aaa0",
         },
     },
     .paths = .{

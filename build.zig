@@ -29,10 +29,10 @@ pub fn build(b: *std.Build) !void {
     const md = b.dependency("markdown", .{
         .target = target,
         .optimize = .ReleaseFast,
-    });
-    lib.root_module.addImport("markdown-zig", md.module("markdown"));
-    exe.root_module.addImport("markdown-zig", md.module("markdown"));
-    zframe_mod.addImport("markdown-zig", md.module("markdown"));
+    }).module("markdown");
+    lib.root_module.addImport("markdown", md);
+    exe.root_module.addImport("markdown", md);
+    zframe_mod.addImport("markdown", md);
 
     // const wasm_analyzer_optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
     // const wasm_analyzer = b.dependency("wasm-binary-analyzer", .{
