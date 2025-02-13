@@ -57,9 +57,9 @@ pub fn mdToHtml(file_path: []const u8) !void {
 
     const md_file = try std.fs.cwd().openFile(file_path, .{});
     var md_buf: [5 * 1024]u8 = undefined;
-    const content = md_file.reader().readAll(&md_buf);
+    const idx = md_file.reader().readAll(&md_buf);
 
-    const result = try markdown.parser.parse_markdown(content);
+    const result = try markdown.parser.parse_markdown(md_buf[0..idx]);
 
     const writer = std.io.getStdOut().writer();
     // or
