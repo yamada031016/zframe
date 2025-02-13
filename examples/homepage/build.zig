@@ -9,16 +9,23 @@ pub fn build(b: *std.Build) !void {
         .optimize = .Debug,
     });
 
-    const zframe = b.createModule(.{ .root_source_file = b.path("../../src/zframe.zig") });
-    exe.root_module.addImport("zframe", zframe);
+    // const zframe = b.createModule(.{ .root_source_file = b.path("../../src/zframe.zig") });
+    // exe.root_module.addImport("zframe", zframe);
+    const zframe = b.dependency("zframe", .{
+        .target = target,
+        .optimize = .ReleaseFast,
+    });
+    exe.root_module.addImport("zframe", zframe.module("zframe"));
 
     const components = b.createModule(.{ .root_source_file = b.path("src/components/components.zig") });
-    components.addImport("zframe", zframe);
+    // components.addImport("zframe", zframe);
+    components.addImport("zframe", zframe.module("zframe"));
     components.addImport("components", components);
     exe.root_module.addImport("components", components);
 
     const api = b.createModule(.{ .root_source_file = b.path("src/api/api.zig") });
-    api.addImport("zframe", zframe);
+    // api.addImport("zframe", zframe);
+    api.addImport("zframe", zframe.module("zframe"));
     api.addImport("api", api);
     exe.root_module.addImport("api", api);
 

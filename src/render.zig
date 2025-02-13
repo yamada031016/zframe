@@ -1,11 +1,12 @@
 const std = @import("std");
 const mem = std.mem;
-const z = @import("ssg-zig");
 const htmlZig = @import("html.zig");
 const element = @import("element.zig");
 const Element = element.Element;
 const n = @import("node.zig");
 const Node = n.Node;
+
+const markdown = @import("markdown-zig");
 
 const RenderError = error{
     InvalidPageFilePath,
@@ -43,6 +44,31 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
         return try std.fs.cwd().createFile(html_output_path, .{ .read = true });
     }
     return RenderError.InvalidPageFilePath;
+}
+
+pub fn mdToHtml(file_path: []const u8) !void {
+    const html = generateHtmlFile("zig-out/html", file_path) catch |e| switch (e) {
+        RenderError.InvalidPageFilePath => {
+            std.log.err("{s} {s}  move below src/pages/**", .{ @errorName(e), file_path });
+            return e;
+        },
+        else => return e,
+    };
+    defer html.close();
+
+    const md_file = try std.fs.cwd().openFile(file_path, .{});
+    var md_buf: [5 * 1024]u8 = undefined;
+    const content = md_file.reader().readAll(&md_buf);
+
+    const result = try markdown.parser.parse_markdown(content);
+
+    const writer = std.io.getStdOut().writer();
+    // or
+    // const html = try std.fs.cwd().createFile("md.html", .{});
+    // const writer = html.writer();
+
+    var hc = markdown.html.converter(writer);
+    try hc.mdToHTML(result.result);
 }
 
 pub fn render(page_name: []const u8, args: Node) !void {

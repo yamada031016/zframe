@@ -4,6 +4,14 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const exe = b.addExecutable(.{
+        .name = "zframe",
+        .root_source_file = b.path("src/zframe.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    b.installArtifact(exe);
+
     const lib = b.addStaticLibrary(.{
         .name = "zframe",
         .root_source_file = b.path("src/zframe.zig"),
@@ -17,6 +25,14 @@ pub fn build(b: *std.Build) !void {
         .optimize = .ReleaseFast,
     });
     lib.root_module.addImport("zframe", zframe_mod);
+
+    const md = b.dependency("markdown-zig", .{
+        .target = target,
+        .optimize = .ReleaseFast,
+    });
+    lib.root_module.addImport("markdown-zig", md.module("markdown-zig"));
+    exe.root_module.addImport("markdown-zig", md.module("markdown-zig"));
+    zframe_mod.addImport("markdown-zig", md.module("markdown-zig"));
 
     // const wasm_analyzer_optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
     // const wasm_analyzer = b.dependency("wasm-binary-analyzer", .{

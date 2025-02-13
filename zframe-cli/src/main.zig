@@ -90,29 +90,6 @@ fn serve(stdout: std.fs.File.Writer) !void {
         }
     }
 }
-// fn mdToHTML() !void {
-//     var md_dir = try std.fs.cwd().openDir("src/pages", .{ .iterate = true });
-//     defer md_dir.close();
-//     var md_output_dir = try std.fs.cwd().openDir("zig-out/html", .{ .iterate = true });
-//     defer md_output_dir.close();
-//     var walker = try md_dir.walk(std.heap.page_allocator);
-//     while (try walker.next()) |file| {
-//         switch (file.kind) {
-//             .file => {
-//                 if (std.mem.eql(u8, ".md", std.fs.path.extension(file.path))) {
-//                     var buf: [1024 * 10]u8 = undefined;
-//                     const md = try file.dir.openFile(file.path, .{});
-//                     const md_len = try md.readAll(&buf);
-//                     const html = try md2html.convert(buf[0..md_len]);
-//                     const output = try md_output_dir.createFile(try std.fmt.allocPrint(std.heap.page_allocator, "{s}.html", .{std.fs.path.stem(file.path)}), .{});
-//                     try output.writeAll(html);
-//                     defer output.close();
-//                 }
-//             },
-//             else => {},
-//         }
-//     }
-// }
 
 fn initProject(name: []const u8) !void {
     const cwd = std.fs.cwd();
