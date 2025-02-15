@@ -8,7 +8,7 @@
     .dependencies = .{
         .zframe = .{
             .url = "https://github.com/yamada031016/zframe/archive/refs/heads/master.tar.gz",
-            .hash = "12202b45c9a977f01758d144596c37183f56878a43f07c70fb4edc28345f1e35f148",
+            .hash = "122095132d5df33cf61bdf41252b4c9a2b5f5cad68eaa15af0a7ee4d818e16e5da1e",
         },
     },
     .paths = .{
