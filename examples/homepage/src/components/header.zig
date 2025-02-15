@@ -5,7 +5,7 @@ const Node = node.Node;
 
 const nav_list = [_][2][]const u8{
     [_][]const u8{ "/about", "About us" },
-    [_][]const u8{ "/Document", "Document" },
+    [_][]const u8{ "/Docs", "Docs" },
     [_][]const u8{ "https://github.com/yamada031016/zframe", "GitHub" },
     // [_][]const u8{ "/about/contact", "Contact" },
 };
