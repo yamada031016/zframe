@@ -15,7 +15,7 @@ pub fn Header() Node {
     const nav = node.createNode(.nav).init(.{});
     const h1 = node.createNode(.h1);
     const div = node.createNode(.div);
-    const Link = c.Link.Link("zframe");
+    const Link = c.Link.Link("");
 
     return header.setClass("bg-opacity-80 backdrop-blur-lg bg-white shadow-lg dark:bg-gray-800").init(.{
         inline for (nav_list) |n| {
