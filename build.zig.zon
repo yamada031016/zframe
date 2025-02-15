@@ -6,11 +6,7 @@
     .dependencies = .{
         .@"wasm-binary-analyzer" = .{
             .url = "https://github.com/yamada031016/wasm-binary-analyzer/archive/refs/heads/main.tar.gz",
-            .hash = "122014b117a02762cb287ce163d7f5d3632aa81652ca481cf9b40d05f48a7275055b",
-        },
-        .@"markdown-zig" = .{
-            .url = "https://github.com/yamada031016/markdown-zig/archive/refs/heads/master.tar.gz",
-            .hash = "122022b2e1c18af08b1b9023ca3061d597d7ecb448b0b0cbb0525bf500f1db566125",
+            .hash = "122051a5aebadc7683b43acaf793a0d0a47913e072a90309e87c9025ffce89ae84ca",
         },
         .markdown = .{
             .url = "https://github.com/yamada031016/markdown-zig/archive/refs/heads/master.tar.gz",
