@@ -108,10 +108,6 @@ pub fn renderMarkdown(md_filename: []const u8, layout: []const u8, head: []const
 
 pub fn render(page_name: []const u8, args: Node) !void {
     const html = generateHtmlFile("zig-out/html", page_name) catch |e| switch (e) {
-        // RenderError.InvalidPageFilePath => {
-        //     std.log.err("{s} {s}  move below src/pages/**", .{ @errorName(e), page_name });
-        //     return e;
-        // },
         else => return e,
     };
     defer html.close();
