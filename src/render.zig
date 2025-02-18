@@ -46,7 +46,7 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
     return RenderError.InvalidPageFilePath;
 }
 
-pub fn renderMarkdown(output: std.fs.File, md_filename: []const u8, layout: ?std.fs.File) !void {
+pub fn renderMarkdown(md_filename: []const u8, layout: ?std.fs.File) !void {
     const html = generateHtmlFile("zig-out/html", md_filename) catch |e| switch (e) {
         RenderError.InvalidPageFilePath => {
             std.log.err("{s} {s}  move below src/pages/**", .{ @errorName(e), md_filename });
@@ -62,7 +62,7 @@ pub fn renderMarkdown(output: std.fs.File, md_filename: []const u8, layout: ?std
 
     const result = try markdown.parser.parse_markdown(md_buf[0..idx]);
 
-    const writer = output.writer();
+    const writer = html.writer();
     var hc = markdown.html.converter(writer);
 
     if (layout) |l| {
@@ -349,13 +349,17 @@ pub fn config(layout: fn (Node) Node) !void {
     const raw = n.createNode(.raw).init("ℤ");
     try parse(&layout(raw), writer);
 
+    const _layout: ?std.fs.File = l: {
+        std.fs.cwd().access(".zig-cache/layout.html", .{}) catch break :l null;
+        break :l try std.fs.cwd().openFile(".zig-cache/layout.html", .{});
+    };
     const dir = try cwd.openDir("src/pages/", .{ .iterate = true });
     var walker = try dir.walk(std.heap.page_allocator);
     while (try walker.next()) |file| {
         switch (file.kind) {
             .file => {
                 if (std.mem.eql(u8, ".md", std.fs.path.extension(file.path))) {
-                    renderMarkdown();
+                    renderMarkdown(file.path, _layout);
                 } else {}
             },
             else => {},
