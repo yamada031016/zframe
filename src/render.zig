@@ -383,7 +383,7 @@ pub fn config(layout: fn (Node) Node, head: fn ([]const u8, anytype) Node) !void
     try renderLayout(layout);
     // try renderHead(head, "ℤ", .{});
     {
-        const headFile = try cwd.createFile(".zig-cache/head.html", .{});
+        const headFile = try cwd.createFile(".zig-cache/common_head.html", .{});
         const writer = headFile.writer();
         try parse(&head("ℤ", .{}), writer);
         headFile.close();
@@ -408,7 +408,7 @@ pub fn config(layout: fn (Node) Node, head: fn ([]const u8, anytype) Node) !void
     };
 
     const headFile: std.fs.File = l: {
-        break :l try std.fs.cwd().openFile(".zig-cache/head.html", .{});
+        break :l try std.fs.cwd().openFile(".zig-cache/common_head.html", .{});
     };
     const headContents = readAll: {
         var buf: [1024 * 5]u8 = undefined;
