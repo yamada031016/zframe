@@ -13,22 +13,19 @@ const RenderError = error{
 };
 
 fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
-    var buffer: [32]u8 = undefined;
-    var fixedBufferAllocator = std.heap.FixedBufferAllocator.init(&buffer);
-    const allocator = fixedBufferAllocator.allocator();
     var html_output_path: []u8 = @constCast(dir_name);
 
     if (std.fs.path.dirname(page_name)) |dir| {
         var parent_dir = dir;
         while (std.fs.path.dirname(parent_dir)) |d| {
-            html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, std.fs.path.basename(d) });
+            html_output_path = try std.fs.path.join(std.heap.page_allocator, &[_][]const u8{ html_output_path, std.fs.path.basename(d) });
             var output_dir = try std.fs.cwd().makeOpenPath(html_output_path, .{ .iterate = true });
             output_dir.close();
             parent_dir = d;
         }
     }
-    const fileName = try std.fmt.allocPrint(allocator, "{s}.html", .{std.fs.path.stem(page_name)}); // src/pages/hoge/a.md -> a.html
-    html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, fileName }); // src/pages/hoge/a.md -> $output_dir/hoge/a.html
+    const fileName = try std.fmt.allocPrint(std.heap.page_allocator, "{s}.html", .{std.fs.path.stem(page_name)}); // src/pages/hoge/a.md -> a.html
+    html_output_path = try std.fs.path.join(std.heap.page_allocator, &[_][]const u8{ html_output_path, fileName }); // src/pages/hoge/a.md -> $output_dir/hoge/a.html
     return try std.fs.cwd().createFile(html_output_path, .{ .read = true });
 }
 
