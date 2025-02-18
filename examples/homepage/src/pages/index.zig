@@ -7,7 +7,7 @@ pub fn index() node.Node {
     const main = node.createNode(.main);
 
     return main.init(.{
-        Head("zframe", .{}),
+        Head("zframe - secure Web Frontend Framework for Zig", .{}),
         Hero(),
         Feature(),
         RoadMap(),
