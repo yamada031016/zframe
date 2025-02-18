@@ -359,7 +359,7 @@ pub fn config(layout: fn (Node) Node) !void {
         switch (file.kind) {
             .file => {
                 if (std.mem.eql(u8, ".md", std.fs.path.extension(file.path))) {
-                    renderMarkdown(file.path, _layout);
+                    try renderMarkdown(file.path, _layout);
                 } else {}
             },
             else => {},
