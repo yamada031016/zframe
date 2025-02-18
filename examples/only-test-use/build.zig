@@ -68,7 +68,7 @@ pub fn build(b: *std.Build) !void {
     var html_dir = try cwd.openDir("zig-out/html", .{ .iterate = true });
     defer html_dir.close();
 
-    // try generate_pages(b, run_step, target, allocator, .{ .{ "zframe", zframe }, .{ "components", components }, .{ "api", api } });
+    try generate_pages(b, run_step, target, .{ .{ "zframe", zframe }, .{ "components", components }, .{ "api", api } });
 
     try wasm_autobuild(b, allocator, html_dir);
 
@@ -88,88 +88,41 @@ pub fn build(b: *std.Build) !void {
     test_step.dependOn(&run_exe_unit_tests.step);
 }
 
-fn generate_pages(b: *std.Build, run_step: *std.Build.Step, target: std.Build.ResolvedTarget, allocator: std.mem.Allocator, imports: anytype) !void {
+fn generate_pages(b: *std.Build, run_step: *std.Build.Step, target: std.Build.ResolvedTarget, imports: anytype) !void {
     const cwd = std.fs.cwd();
     var md_output_dir = try cwd.openDir("zig-out/html", .{ .iterate = true });
     defer md_output_dir.close();
     const dir = try cwd.openDir("src/pages/", .{ .iterate = true });
-    var walker = try dir.walk(allocator);
+    var walker = try dir.walk(std.heap.page_allocator);
     while (try walker.next()) |file| {
         switch (file.kind) {
             .file => {
                 if (std.mem.eql(u8, ".zig", std.fs.path.extension(file.path))) {
-                    const page_exe = b.addExecutable(.{
-                        .name = std.fs.path.stem(file.path),
-                        .root_source_file = b.path(try std.fmt.allocPrintZ(allocator, "src/pages/{s}", .{file.path})),
-                        .target = target,
-                        .optimize = .Debug,
-                    });
-
-                    inline for (imports) |import| {
-                        page_exe.root_module.addImport(import[0], import[1]);
-                    }
-
-                    const page_run_cmd = b.addRunArtifact(page_exe);
-                    page_run_cmd.step.dependOn(b.getInstallStep());
-                    run_step.dependOn(&page_run_cmd.step);
-                    b.installArtifact(page_exe);
-                } else if (std.mem.eql(u8, ".md", std.fs.path.extension(file.path))) {
-                    // var buf:[1024*10]u8 = undefined;
-                    // const md = try file.dir.openFile(file.path, .{});
-                    // const md_len = try md.readAll(&buf);
-                    // var layoutPath:?[]const u8 = null;
-                    // var title:?[]const u8 = null;
-                    // const output = try md_output_dir.createFile(try std.fmt.allocPrint(std.heap.page_allocator, "{s}.html", .{std.fs.path.stem(file.path)}), .{});
-                    // for(buf, 0..) |c, i| {
-                    //     if(c == '@') {
-                    //         if(std.mem.startsWith(u8, buf[i..], "@layout:")) {
-                    //             layoutPath = findPath:{
-                    //                 var path_buf:[64]u8 = undefined;
-                    //                 var path_pos:usize = 0;
-                    //                 for(buf[i+"layout:".len+1..]) |char|{
-                    //                     if(char == ' ' or char == '\t') {
-                    //                         continue;
-                    //                     }
-                    //                     if(char == '\n') {
-                    //                         break :findPath path_buf[0..path_pos];
-                    //                     }
-                    //                     path_buf[path_pos] = char;
-                    //                     path_pos += 1;
-                    //                 }
-                    //                 unreachable;
-                    //             };
-                    //         } else if (std.mem.startsWith(u8, buf[i..], "@title:")){
-                    //             title = findTitle:{
-                    //                 var title_buf:[64]u8 = undefined;
-                    //                 var pos:usize = 0;
-                    //                 for(buf[i+"title:".len+1..]) |char|{
-                    //                     if(char == ' ' or char == '\t') {
-                    //                         continue;
-                    //                     }
-                    //                     if(char == '\n') {
-                    //                         break :findTitle title_buf[0..pos];
-                    //                     }
-                    //                     title_buf[pos] = char;
-                    //                     pos += 1;
-                    //                 }
-                    //                 unreachable;
-                    //             };
-                    //         }
-                    //     }
-                    // }
-                    // if (layoutPath) |path| {
-                    //     const filePath = try std.fmt.allocPrint(std.heap.page_allocator, "src/components/{s}", .{std.fs.path.basename(path)});
-                    //     cwd.access(".zig-cache/tmp/layout.html", .{}) catch {
-                    //     };
-                    // }
-                    // const html = try @import("src/convert.zig").convert(buf[0..md_len]);
-                    // try output.writeAll(html);
-                    // defer output.close();
-                }
+                    // _ = try std.Thread.spawn(.{}, generate_page, .{ b, run_step, target, allocator, imports, file.path });
+                    try generate_page(b, run_step, target, std.heap.page_allocator, imports, file.path);
+                } else {}
             },
             else => {},
         }
     }
+}
+
+fn generate_page(b: *std.Build, run_step: *std.Build.Step, target: std.Build.ResolvedTarget, allocator: std.mem.Allocator, imports: anytype, path: []const u8) !void {
+    const page_exe = b.addExecutable(.{
+        .name = std.fs.path.stem(path),
+        .root_source_file = b.path(try std.fmt.allocPrintZ(allocator, "src/pages/{s}", .{path})),
+        .target = target,
+        .optimize = .Debug,
+    });
+
+    inline for (imports) |import| {
+        page_exe.root_module.addImport(import[0], import[1]);
+    }
+
+    const page_run_cmd = b.addRunArtifact(page_exe);
+    page_run_cmd.step.dependOn(b.getInstallStep());
+    run_step.dependOn(&page_run_cmd.step);
+    b.installArtifact(page_exe);
 }
 
 fn wasm_autobuild(b: *std.Build, allocator: std.mem.Allocator, root_dir: std.fs.Dir) !void {

@@ -9,6 +9,7 @@ const markdown = @import("zframe.zig").markdown;
 
 const RenderError = error{
     InvalidPageFilePath,
+    UnsupportedFileExtension,
 };
 
 fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
@@ -45,25 +46,43 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
     return RenderError.InvalidPageFilePath;
 }
 
-pub fn mdToHtml(file_path: []const u8) !void {
-    const html = generateHtmlFile("zig-out/html", file_path) catch |e| switch (e) {
+pub fn renderMarkdown(output: std.fs.File, md_filename: []const u8, layout: ?std.fs.File) !void {
+    const html = generateHtmlFile("zig-out/html", md_filename) catch |e| switch (e) {
         RenderError.InvalidPageFilePath => {
-            std.log.err("{s} {s}  move below src/pages/**", .{ @errorName(e), file_path });
+            std.log.err("{s} {s}  move below src/pages/**", .{ @errorName(e), md_filename });
             return e;
         },
         else => return e,
     };
     defer html.close();
 
-    const md_file = try std.fs.cwd().openFile(file_path, .{});
+    const file = std.fs.cwd().openFile(try std.fmt.allocPrint(std.heap.page_allocator, "src/pages/{s}", .{md_filename}));
     var md_buf: [5 * 1024]u8 = undefined;
-    const idx = try md_file.reader().readAll(&md_buf);
+    const idx = try file.reader().readAll(&md_buf);
 
     const result = try markdown.parser.parse_markdown(md_buf[0..idx]);
 
-    const writer = html.writer();
+    const writer = output.writer();
     var hc = markdown.html.converter(writer);
-    try hc.mdToHTML(result.result);
+
+    if (layout) |l| {
+        const layoutContents = readAll: {
+            var buf: [1024 * 5]u8 = undefined;
+            const l_len = try l.readAll(&buf);
+            if (l_len < buf.len) {
+                break :readAll buf[0..l_len];
+            } else {
+                @panic("layout buffer overflow");
+            }
+        };
+
+        const z_pos = std.mem.indexOfPos(u8, layoutContents, 0, "ℤ") orelse 0;
+        try writer.writeAll(layoutContents[0..z_pos]);
+        try hc.mdToHTML(result.result);
+        try writer.writeAll(layoutContents[z_pos + "ℤ".len ..]);
+    } else {
+        try hc.mdToHTML(result.result);
+    }
 }
 
 pub fn render(page_name: []const u8, args: Node) !void {
@@ -329,6 +348,19 @@ pub fn config(layout: fn (Node) Node) !void {
     const writer = layoutFile.writer();
     const raw = n.createNode(.raw).init("ℤ");
     try parse(&layout(raw), writer);
+
+    const dir = try cwd.openDir("src/pages/", .{ .iterate = true });
+    var walker = try dir.walk(std.heap.page_allocator);
+    while (try walker.next()) |file| {
+        switch (file.kind) {
+            .file => {
+                if (std.mem.eql(u8, ".md", std.fs.path.extension(file.path))) {
+                    renderMarkdown();
+                } else {}
+            },
+            else => {},
+        }
+    }
 }
 
 test "generateWebComponents" {
