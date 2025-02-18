@@ -142,7 +142,7 @@ pub fn render(page_name: []const u8, args: Node) !void {
         return;
     };
     const head_writer = head_file.writer();
-    try head_writer.writeAll("</head>");
+    try head_writer.pwriteAll("</head>", try head_file.getEndPos());
 
     const len = try html.getEndPos();
     var head_len = try head_file.getEndPos();
@@ -203,7 +203,7 @@ fn parse(node: *const Node, writer: anytype) !void {
                 defer head_output.close();
                 var head_writer = head_output.writer();
                 if (mem.eql(u8, "head", tagName)) {
-                    try head_writer.writeAll("\n<head>");
+                    try head_writer.pwriteAll("<head>", try head_output.getEndPos());
                     for (node.children.items) |child| {
                         try parse(&child, head_writer);
                     }
