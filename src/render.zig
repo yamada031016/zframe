@@ -141,8 +141,7 @@ pub fn render(page_name: []const u8, args: Node) !void {
         _ = try std.fs.File.copyRangeAll(tmp, 0, html, offset, tmp_len);
         return;
     };
-    const head_writer = head_file.writer();
-    try head_writer.pwriteAll("</head>", try head_file.getEndPos());
+    try head_file.pwriteAll("</head>", try head_file.getEndPos());
 
     const len = try html.getEndPos();
     var head_len = try head_file.getEndPos();
@@ -201,9 +200,9 @@ fn parse(node: *const Node, writer: anytype) !void {
             } else if (elem.isInsideHead()) {
                 var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .read = true, .truncate = false });
                 defer head_output.close();
-                var head_writer = head_output.writer();
+                const head_writer = head_output.writer();
                 if (mem.eql(u8, "head", tagName)) {
-                    try head_writer.pwriteAll("<head>", try head_output.getEndPos());
+                    try head_output.pwriteAll("<head>", try head_output.getEndPos());
                     for (node.children.items) |child| {
                         try parse(&child, head_writer);
                     }
