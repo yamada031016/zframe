@@ -381,7 +381,13 @@ fn renderHead(head: fn ([]const u8, anytype) Node, title: []const u8, args: anyt
 pub fn config(layout: fn (Node) Node, head: fn ([]const u8, anytype) Node) !void {
     const cwd = std.fs.cwd();
     try renderLayout(layout);
-    try renderHead(head, "ℤ", .{});
+    // try renderHead(head, "ℤ", .{});
+    {
+        const headFile = try cwd.createFile(".zig-cache/head.html", .{});
+        const writer = headFile.writer();
+        try parse(&head("ℤ", .{}), writer);
+        headFile.close();
+    }
 
     const _layout: ?std.fs.File = l: {
         std.fs.cwd().access(".zig-cache/layout.html", .{}) catch break :l null;
