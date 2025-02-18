@@ -103,7 +103,7 @@ pub fn renderMarkdown(md_filename: []const u8, layout: ?std.fs.File) !void {
         };
 
         const z_pos = std.mem.indexOfPos(u8, layoutContents, 0, "ℤ") orelse 0;
-        std.log.err("{s}", .{layoutContents});
+        std.log.err("{s}", .{layoutContents[0..z_pos]});
         try writer.writeAll(layoutContents[0..z_pos]);
         try hc.mdToHTML(result.result);
         try writer.writeAll(layoutContents[z_pos + 3 ..]);
