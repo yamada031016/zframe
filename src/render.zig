@@ -78,7 +78,7 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
 //     return RenderError.InvalidPageFilePath;
 // }
 
-pub fn renderMarkdown(md_filename: []const u8) !void {
+pub fn renderMarkdown(md_filename: []const u8, layout: ?std.fs.File) !void {
     const html = try generateHtmlFile("zig-out/html", md_filename);
     defer html.close();
 
@@ -91,7 +91,25 @@ pub fn renderMarkdown(md_filename: []const u8) !void {
     const writer = html.writer();
     var hc = markdown.html.converter(writer);
 
-    try hc.mdToHTML(result.result);
+    if (layout) |l| {
+        const layoutContents = readAll: {
+            var buf: [1024 * 5]u8 = undefined;
+            const l_len = try l.readAll(&buf);
+            if (l_len < buf.len) {
+                break :readAll buf[0..l_len];
+            } else {
+                @panic("layout buffer overflow");
+            }
+        };
+
+        const z_pos = std.mem.indexOfPos(u8, layoutContents, 0, "ℤ") orelse 0;
+        std.log.err("{s}", .{layoutContents});
+        try writer.writeAll(layoutContents[0..z_pos]);
+        try hc.mdToHTML(result.result);
+        try writer.writeAll(layoutContents[z_pos + 3 ..]);
+    } else {
+        try hc.mdToHTML(result.result);
+    }
 }
 
 pub fn render(page_name: []const u8, args: Node) !void {
@@ -373,25 +391,7 @@ pub fn config(layout: fn (Node) Node) !void {
         switch (file.kind) {
             .file => {
                 if (std.mem.eql(u8, ".md", std.fs.path.extension(file.path))) {
-                    if (_layout) |l| {
-                        const layoutContents = readAll: {
-                            var buf: [1024 * 5]u8 = undefined;
-                            const l_len = try l.readAll(&buf);
-                            if (l_len < buf.len) {
-                                break :readAll buf[0..l_len];
-                            } else {
-                                @panic("layout buffer overflow");
-                            }
-                        };
-
-                        const z_pos = std.mem.indexOfPos(u8, layoutContents, 0, "ℤ") orelse 0;
-                        std.log.err("{s}", .{layoutContents});
-                        try writer.writeAll(layoutContents[0..z_pos]);
-                        try renderMarkdown(file.path);
-                        try writer.writeAll(layoutContents[z_pos + 3 ..]);
-                    } else {
-                        try renderMarkdown(file.path);
-                    }
+                    try renderMarkdown(file.path, _layout);
                 }
             },
             else => {},
