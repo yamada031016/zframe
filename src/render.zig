@@ -16,50 +16,70 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
     var buffer: [32]u8 = undefined;
     var fixedBufferAllocator = std.heap.FixedBufferAllocator.init(&buffer);
     const allocator = fixedBufferAllocator.allocator();
+    var html_output_path: []u8 = @constCast(dir_name);
 
-    const src = std.fs.path.dirname(page_name) orelse return RenderError.InvalidPageFilePath; // src/pages/index.zig -> src/pages
-    const parent = std.fs.path.basename(src); // src/pages -> pages
-    var html_output_path: []u8 = @constCast("zig-out/html/");
-
-    if (mem.eql(u8, parent, "pages")) {
-        // single file routing.
-        // ex) pages/index.zig, pages/about.zig.
-        if (std.fs.path.dirname(src)) |_| {
-            const url = std.fs.path.stem(std.fs.path.basename(page_name));
-            return try std.fs.cwd().createFile(try std.fmt.allocPrint(allocator, "{s}/{s}.html", .{ dir_name, url }), .{ .read = true });
-        }
-    } else {
-        // multiple file routing.
-        // ex) pages/about/page.zig, pages/about/contact.md
-        if (mem.eql(u8, std.fs.path.basename(page_name), "page.zig")) {
-            const url = parent;
-            var parent_dir = std.fs.path.dirname(src).?;
-            while (!mem.eql(u8, std.fs.path.basename(parent_dir), "pages")) {
-                html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, std.fs.path.basename(parent_dir) });
-                var output_dir = try std.fs.cwd().makeOpenPath(html_output_path, .{ .iterate = true });
-                output_dir.close();
-                parent_dir = std.fs.path.dirname(parent_dir).?;
-            }
-            const fileName = try std.fmt.allocPrint(allocator, "{s}.html", .{url});
-            html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, fileName });
-            return try std.fs.cwd().createFile(html_output_path, .{ .read = true });
-        } else if (mem.eql(u8, std.fs.path.extension(page_name), ".md")) {
-            std.log.err("{s}\n", .{src});
-            var parent_dir = std.fs.path.dirname(src).?;
-            // pages/hoge/fuga -> pages/hoge -> pages
-            while (!mem.eql(u8, std.fs.path.basename(parent_dir), "pages")) {
-                html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, std.fs.path.basename(parent_dir) });
-                var output_dir = try std.fs.cwd().makeOpenPath(html_output_path, .{ .iterate = true });
-                output_dir.close();
-                parent_dir = std.fs.path.dirname(parent_dir).?;
-            }
-            const fileName = try std.fmt.allocPrint(allocator, "{s}.html", .{std.fs.path.stem(page_name)}); // src/pages/hoge/a.md -> a.html
-            html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, fileName }); // src/pages/hoge/a.md -> $output_dir/hoge/a.html
-            return try std.fs.cwd().createFile(html_output_path, .{ .read = true });
+    if (std.fs.path.dirname(page_name)) |dir| {
+        var parent_dir = dir;
+        while (std.fs.path.dirname(parent_dir)) |d| {
+            html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, std.fs.path.basename(d) });
+            var output_dir = try std.fs.cwd().makeOpenPath(html_output_path, .{ .iterate = true });
+            output_dir.close();
+            parent_dir = d;
         }
     }
-    return RenderError.InvalidPageFilePath;
+    const fileName = try std.fmt.allocPrint(allocator, "{s}.html", .{std.fs.path.stem(page_name)}); // src/pages/hoge/a.md -> a.html
+    html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, fileName }); // src/pages/hoge/a.md -> $output_dir/hoge/a.html
+    return try std.fs.cwd().createFile(html_output_path, .{ .read = true });
 }
+
+// fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
+//     var buffer: [32]u8 = undefined;
+//     var fixedBufferAllocator = std.heap.FixedBufferAllocator.init(&buffer);
+//     const allocator = fixedBufferAllocator.allocator();
+//
+//     const src = std.fs.path.dirname(page_name) orelse return RenderError.InvalidPageFilePath; // src/pages/index.zig -> src/pages
+//     const parent = std.fs.path.basename(src); // src/pages -> pages
+//     var html_output_path: []u8 = @constCast("zig-out/html/");
+//
+//     if (mem.eql(u8, parent, "pages")) {
+//         // single file routing.
+//         // ex) pages/index.zig, pages/about.zig.
+//         if (std.fs.path.dirname(src)) |_| {
+//             const url = std.fs.path.stem(std.fs.path.basename(page_name));
+//             return try std.fs.cwd().createFile(try std.fmt.allocPrint(allocator, "{s}/{s}.html", .{ dir_name, url }), .{ .read = true });
+//         }
+//     } else {
+//         // multiple file routing.
+//         // ex) pages/about/page.zig, pages/about/contact.md
+//         if (mem.eql(u8, std.fs.path.basename(page_name), "page.zig")) {
+//             const url = parent;
+//             var parent_dir = std.fs.path.dirname(src).?;
+//             while (!mem.eql(u8, std.fs.path.basename(parent_dir), "pages")) {
+//                 html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, std.fs.path.basename(parent_dir) });
+//                 var output_dir = try std.fs.cwd().makeOpenPath(html_output_path, .{ .iterate = true });
+//                 output_dir.close();
+//                 parent_dir = std.fs.path.dirname(parent_dir).?;
+//             }
+//             const fileName = try std.fmt.allocPrint(allocator, "{s}.html", .{url});
+//             html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, fileName });
+//             return try std.fs.cwd().createFile(html_output_path, .{ .read = true });
+//         } else if (mem.eql(u8, std.fs.path.extension(page_name), ".md")) {
+//             std.log.err("{s}\n", .{src});
+//             var parent_dir = std.fs.path.dirname(src).?;
+//             // pages/hoge/fuga -> pages/hoge -> pages
+//             while (!mem.eql(u8, std.fs.path.basename(parent_dir), "pages")) {
+//                 html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, std.fs.path.basename(parent_dir) });
+//                 var output_dir = try std.fs.cwd().makeOpenPath(html_output_path, .{ .iterate = true });
+//                 output_dir.close();
+//                 parent_dir = std.fs.path.dirname(parent_dir).?;
+//             }
+//             const fileName = try std.fmt.allocPrint(allocator, "{s}.html", .{std.fs.path.stem(page_name)}); // src/pages/hoge/a.md -> a.html
+//             html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, fileName }); // src/pages/hoge/a.md -> $output_dir/hoge/a.html
+//             return try std.fs.cwd().createFile(html_output_path, .{ .read = true });
+//         }
+//     }
+//     return RenderError.InvalidPageFilePath;
+// }
 
 pub fn renderMarkdown(md_filename: []const u8, layout: ?std.fs.File) !void {
     const html = generateHtmlFile("zig-out/html", md_filename) catch |e| switch (e) {
