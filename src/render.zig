@@ -371,13 +371,17 @@ fn renderLayout(layout: fn (Node) Node) !void {
     try parse(&layout(raw), writer);
 }
 
+fn renderHead(head: fn (Node) Node, title: []const u8, args: anytype) !void {
+    const cwd = std.fs.cwd();
+    const headFile = try cwd.createFile(".zig-cache/head.html", .{ .read = true });
+    const writer = headFile.writer();
+    try parse(&head(title, args), writer);
+}
+
 pub fn config(layout: fn (Node) Node, head: fn ([]const u8, anytype) Node) !void {
     const cwd = std.fs.cwd();
     try renderLayout(layout);
-
-    const headFile = try cwd.createFile(".zig-cache/head.html", .{ .read = true });
-    const writer = headFile.writer();
-    try parse(&head("ℤ", .{}), writer);
+    try renderHead(head, "ℤ", .{});
 
     const _layout: ?std.fs.File = l: {
         std.fs.cwd().access(".zig-cache/layout.html", .{}) catch break :l null;
@@ -395,6 +399,10 @@ pub fn config(layout: fn (Node) Node, head: fn ([]const u8, anytype) Node) !void
         } else {
             break :readAll "";
         }
+    };
+
+    const headFile: std.fs.File = l: {
+        break :l try std.fs.cwd().openFile(".zig-cache/head.html", .{});
     };
     const headContents = readAll: {
         var buf: [1024 * 5]u8 = undefined;
