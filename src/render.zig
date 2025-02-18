@@ -377,8 +377,7 @@ pub fn config(layout: fn (Node) Node, head: fn ([]const u8, anytype) Node) !void
 
     const headFile = try cwd.createFile(".zig-cache/head.html", .{});
     const writer = headFile.writer();
-    const raw = n.createNode(.raw).init("ℤ");
-    try parse(&head(raw, .{}), writer);
+    try parse(&head("ℤ", .{}), writer);
 
     const _layout: ?std.fs.File = l: {
         std.fs.cwd().access(".zig-cache/layout.html", .{}) catch break :l null;
