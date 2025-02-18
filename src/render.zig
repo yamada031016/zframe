@@ -356,17 +356,17 @@ fn generateJsElement(node: *const n.Node, writer: anytype) !void {
     try writer.print("</{s}>", .{node.elem.getTagName()});
 }
 
-fn renderLayout(layout: fn (Node) Node) !void {
+fn renderLayout(layout: fn (Node) Node, head: Node) !void {
     const cwd = std.fs.cwd();
     const layoutFile = try cwd.createFile(".zig-cache/layout.html", .{});
     const writer = layoutFile.writer();
     const raw = n.createNode(.raw).init("ℤ");
-    try parse(&layout(raw), writer);
+    try parse(&layout(n.createNode(.raw).init(.{ head, raw })), writer);
 }
 
-pub fn config(layout: fn (Node) Node) !void {
+pub fn config(layout: fn (Node) Node, head: Node) !void {
     const cwd = std.fs.cwd();
-    try renderLayout(layout);
+    try renderLayout(layout, head);
 
     const _layout: ?std.fs.File = l: {
         std.fs.cwd().access(".zig-cache/layout.html", .{}) catch break :l null;
