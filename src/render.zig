@@ -56,7 +56,7 @@ pub fn renderMarkdown(md_filename: []const u8, layout: ?std.fs.File) !void {
     };
     defer html.close();
 
-    const file = std.fs.cwd().openFile(try std.fmt.allocPrint(std.heap.page_allocator, "src/pages/{s}", .{md_filename}));
+    const file = try std.fs.cwd().openFile(try std.fmt.allocPrint(std.heap.page_allocator, "src/pages/{s}", .{md_filename}), .{});
     var md_buf: [5 * 1024]u8 = undefined;
     const idx = try file.reader().readAll(&md_buf);
 
