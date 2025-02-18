@@ -17,8 +17,8 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
     var fixedBufferAllocator = std.heap.FixedBufferAllocator.init(&buffer);
     const allocator = fixedBufferAllocator.allocator();
 
-    const src = std.fs.path.dirname(page_name) orelse return RenderError.InvalidPageFilePath; // expect "src/pages"
-    const parent = std.fs.path.basename(src); // parent dir of the page component file. ex) pages/, about/
+    const src = std.fs.path.dirname(page_name) orelse return RenderError.InvalidPageFilePath; // src/pages/index.zig -> src/pages
+    const parent = std.fs.path.basename(src); // src/pages -> pages
     var html_output_path: []u8 = @constCast("zig-out/html/");
 
     if (mem.eql(u8, parent, "pages")) {
@@ -28,10 +28,10 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
             const url = std.fs.path.stem(std.fs.path.basename(page_name));
             return try std.fs.cwd().createFile(try std.fmt.allocPrint(allocator, "{s}/{s}.html", .{ dir_name, url }), .{ .read = true });
         }
-    } else if (!mem.eql(u8, parent, "src")) {
+    } else {
+        // multiple file routing.
+        // ex) pages/about/page.zig, pages/about/contact.md
         if (mem.eql(u8, std.fs.path.basename(page_name), "page.zig")) {
-            // multiple file routing.
-            // ex) pages/about/page.zig, pages/about/contact/page.zig
             const url = parent;
             var parent_dir = std.fs.path.dirname(src).?;
             while (!mem.eql(u8, std.fs.path.basename(parent_dir), "pages")) {
@@ -44,6 +44,7 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
             html_output_path = try std.fs.path.join(allocator, &[_][]const u8{ html_output_path, fileName });
             return try std.fs.cwd().createFile(html_output_path, .{ .read = true });
         } else if (mem.eql(u8, std.fs.path.extension(page_name), ".md")) {
+            std.log.err("{s}\n", .{src});
             var parent_dir = std.fs.path.dirname(src).?;
             // pages/hoge/fuga -> pages/hoge -> pages
             while (!mem.eql(u8, std.fs.path.basename(parent_dir), "pages")) {
