@@ -78,7 +78,7 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
 //     return RenderError.InvalidPageFilePath;
 // }
 
-pub fn renderMarkdown(md_filename: []const u8, layout: ?std.fs.File) !void {
+pub fn renderMarkdown(md_filename: []const u8, layout: []const u8) !void {
     const html = try generateHtmlFile("zig-out/html", md_filename);
     defer html.close();
 
@@ -91,24 +91,11 @@ pub fn renderMarkdown(md_filename: []const u8, layout: ?std.fs.File) !void {
     const writer = html.writer();
     var hc = markdown.html.converter(writer);
 
-    if (layout) |l| {
-        const layoutContents = readAll: {
-            var buf: [1024 * 5]u8 = undefined;
-            const l_len = try l.readAll(&buf);
-            if (l_len < buf.len) {
-                break :readAll buf[0..l_len];
-            } else {
-                @panic("layout buffer overflow");
-            }
-        };
-
-        const z_pos = std.mem.indexOfPos(u8, layoutContents, 0, "ℤ") orelse 0;
-        std.log.err("{s}", .{layoutContents[z_pos + 3 ..]});
-        try writer.writeAll(layoutContents[0..z_pos]);
-        try hc.mdToHTML(result.result);
-        try writer.writeAll(layoutContents[z_pos..]);
-    } else {
-        try hc.mdToHTML(result.result);
+    const z_pos = std.mem.indexOfPos(u8, layout, 0, "ℤ") orelse 0;
+    try writer.writeAll(layout[0..z_pos]);
+    try hc.mdToHTML(result.result);
+    if (z_pos != 0) {
+        try writer.writeAll(layout[z_pos..]);
     }
 }
 
@@ -385,13 +372,27 @@ pub fn config(layout: fn (Node) Node) !void {
         std.fs.cwd().access(".zig-cache/layout.html", .{}) catch break :l null;
         break :l try std.fs.cwd().openFile(".zig-cache/layout.html", .{});
     };
+    const layoutContents = readAll: {
+        if (_layout) |l| {
+            var buf: [1024 * 5]u8 = undefined;
+            const l_len = try l.readAll(&buf);
+            if (l_len < buf.len) {
+                break :readAll buf[0..l_len];
+            } else {
+                @panic("layout buffer overflow");
+            }
+        } else {
+            break :readAll "";
+        }
+    };
+
     const dir = try cwd.openDir("src/pages/", .{ .iterate = true });
     var walker = try dir.walk(std.heap.page_allocator);
     while (try walker.next()) |file| {
         switch (file.kind) {
             .file => {
                 if (std.mem.eql(u8, ".md", std.fs.path.extension(file.path))) {
-                    try renderMarkdown(file.path, _layout);
+                    try renderMarkdown(file.path, layoutContents);
                 }
             },
             else => {},
