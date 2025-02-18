@@ -373,7 +373,7 @@ fn renderLayout(layout: fn (Node) Node) !void {
 
 fn renderHead(head: fn ([]const u8, anytype) Node, title: []const u8, args: anytype) !void {
     const cwd = std.fs.cwd();
-    const headFile = try cwd.createFile(".zig-cache/head.html", .{ .read = true });
+    const headFile = try cwd.createFile(".zig-cache/head.html", .{});
     const writer = headFile.writer();
     try parse(&head(title, args), writer);
 }
