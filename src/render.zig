@@ -83,10 +83,10 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
 
 pub fn renderMarkdown(md_filename: []const u8, layout: ?std.fs.File) !void {
     const html = generateHtmlFile("zig-out/html", md_filename) catch |e| switch (e) {
-        RenderError.InvalidPageFilePath => {
-            std.log.err("{s} {s}  move below src/pages/**", .{ @errorName(e), md_filename });
-            return e;
-        },
+        // RenderError.InvalidPageFilePath => {
+        //     std.log.err("{s} {s}  move below src/pages/**", .{ @errorName(e), md_filename });
+        //     return e;
+        // },
         else => return e,
     };
     defer html.close();
@@ -122,10 +122,10 @@ pub fn renderMarkdown(md_filename: []const u8, layout: ?std.fs.File) !void {
 
 pub fn render(page_name: []const u8, args: Node) !void {
     const html = generateHtmlFile("zig-out/html", page_name) catch |e| switch (e) {
-        RenderError.InvalidPageFilePath => {
-            std.log.err("{s} {s}  move below src/pages/**", .{ @errorName(e), page_name });
-            return e;
-        },
+        // RenderError.InvalidPageFilePath => {
+        //     std.log.err("{s} {s}  move below src/pages/**", .{ @errorName(e), page_name });
+        //     return e;
+        // },
         else => return e,
     };
     defer html.close();
