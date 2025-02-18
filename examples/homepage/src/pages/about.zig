@@ -8,7 +8,7 @@ pub fn about() node.Node {
     const div = node.createNode(.div);
 
     return div.init(.{
-        Head("about zframe", .{}),
+        Head("About zframe", .{}),
         p.init("under development"),
         p.init("Hold on a second!"),
     });
