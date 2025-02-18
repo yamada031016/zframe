@@ -78,7 +78,7 @@ fn generateHtmlFile(dir_name: []const u8, page_name: []const u8) !std.fs.File {
 //     return RenderError.InvalidPageFilePath;
 // }
 
-pub fn renderMarkdown(md_filename: []const u8, layout: []const u8, head: []const u8) !void {
+pub fn renderMarkdown(md_filename: []const u8, layout: []const u8) !void {
     const html = try generateHtmlFile("zig-out/html", md_filename);
     defer html.close();
 
@@ -91,13 +91,6 @@ pub fn renderMarkdown(md_filename: []const u8, layout: []const u8, head: []const
     const writer = html.writer();
     var hc = markdown.html.converter(writer);
 
-    const title = std.fs.path.stem(md_filename);
-    const head_z_pos = std.mem.indexOfPos(u8, head, 0, "ℤ") orelse 0;
-    try writer.writeAll(head[0..head_z_pos]);
-    try writer.writeAll(title);
-    if (head_z_pos != 0) {
-        try writer.writeAll(head[head_z_pos..]);
-    }
     const z_pos = std.mem.indexOfPos(u8, layout, 0, "ℤ") orelse 0;
     try writer.writeAll(layout[0..z_pos]);
     try hc.mdToHTML(result.result);
@@ -196,22 +189,23 @@ fn parse(node: *const Node, writer: anytype) !void {
         },
         else => |elem| {
             const tagName = elem.getTagName();
-            if (mem.eql(u8, "raw", tagName) or mem.eql(u8, "empty", tagName)) {
+            if (elem.isEmpty()) {
                 if (elem.plane.template) |temp| {
                     try writer.print("{s}", .{temp});
                 }
                 for (node.children.items) |child| {
                     try parse(&child, writer);
                 }
-            } else if (mem.eql(u8, "head", tagName)) {
+            } else if (elem.isInsideHead()) {
                 var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .read = true });
                 defer head_output.close();
                 var head_writer = head_output.writer();
-                try head_writer.writeAll("\n<head>");
+                try head_writer.print("<{s}>", .{tagName});
+                // try head_writer.writeAll("\n<head>");
                 for (node.children.items) |child| {
                     try parse(&child, head_writer);
                 }
-                try head_writer.writeAll("</head>");
+                // try head_writer.writeAll("</head>");
             } else {
                 try parseElement(node, writer);
                 for (node.children.items) |child| {
@@ -367,23 +361,16 @@ fn renderLayout(layout: fn (Node) Node) !void {
     try parse(&layout(raw), writer);
 }
 
-fn renderHead(head: fn ([]const u8, anytype) Node, title: []const u8, args: anytype) !void {
-    const cwd = std.fs.cwd();
-    const headFile = try cwd.createFile(".zig-cache/head.html", .{});
-    const writer = headFile.writer();
-    try parse(&head(title, args), writer);
-}
+// fn renderHead(head: fn ([]const u8, anytype) Node, title: []const u8, args: anytype) !void {
+//     const cwd = std.fs.cwd();
+//     const headFile = try cwd.createFile(".zig-cache/head.html", .{});
+//     const writer = headFile.writer();
+//     try parse(&head(title, args), writer);
+// }
 
-pub fn config(layout: fn (Node) Node, head: fn ([]const u8, anytype) Node) !void {
+pub fn config(layout: fn (Node) Node) !void {
     const cwd = std.fs.cwd();
     try renderLayout(layout);
-    // try renderHead(head, "ℤ", .{});
-    {
-        const headFile = try cwd.createFile(".zig-cache/common_head.html", .{});
-        const writer = headFile.writer();
-        try parse(&head("ℤ", .{}), writer);
-        headFile.close();
-    }
 
     const _layout: ?std.fs.File = l: {
         std.fs.cwd().access(".zig-cache/layout.html", .{}) catch break :l null;
@@ -403,26 +390,13 @@ pub fn config(layout: fn (Node) Node, head: fn ([]const u8, anytype) Node) !void
         }
     };
 
-    const headFile: std.fs.File = l: {
-        break :l try std.fs.cwd().openFile(".zig-cache/common_head.html", .{});
-    };
-    const headContents = readAll: {
-        var buf: [1024 * 5]u8 = undefined;
-        const l_len = try headFile.readAll(&buf);
-        if (l_len < buf.len) {
-            break :readAll buf[0..l_len];
-        } else {
-            @panic("layout buffer overflow");
-        }
-    };
-
     const dir = try cwd.openDir("src/pages/", .{ .iterate = true });
     var walker = try dir.walk(std.heap.page_allocator);
     while (try walker.next()) |file| {
         switch (file.kind) {
             .file => {
                 if (std.mem.eql(u8, ".md", std.fs.path.extension(file.path))) {
-                    try renderMarkdown(file.path, layoutContents, headContents);
+                    try renderMarkdown(file.path, layoutContents);
                 }
             },
             else => {},

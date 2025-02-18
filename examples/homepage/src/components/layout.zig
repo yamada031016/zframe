@@ -3,12 +3,14 @@ const node = z.node;
 const c = @import("components");
 const Header = c.header.Header;
 const Footer = c.footer.Footer;
+const Head = c.head.Head;
 
 pub fn Layout(page: node.Node) node.Node {
     const div = node.createNode(.div);
     const body = node.createNode(.body);
     const html = node.createNode(.html);
     return html.init(.{
+        Head(),
         body.setClass("bg-white text-gray-900 font-sans dark:bg-gray-900 dark:text-gray-200 dark:font-sans").init(.{
             Header(),
             div.setClass("").init(.{

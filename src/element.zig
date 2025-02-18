@@ -69,6 +69,21 @@ pub const Element = union(ElementType) {
         }
     }
 
+    pub fn isEmpty(self: *const Element) bool {
+        switch (self.*) {
+            .plane => |p| return (std.mem.eql(u8, "raw", p.tag.asText()) or std.mem.eql(u8, "empty", p.tag.asText())),
+            else => return false,
+        }
+    }
+
+    pub fn isInsideHead(self: *const Element) bool {
+        switch (self.*) {
+            .plane => |p| return (std.mem.eql(u8, "title", p.tag.asText()) or std.mem.eql(u8, "script", p.tag.asText()) or std.mem.eql(u8, "head", p.tag.asText())),
+            .meta, .link => return true,
+            else => return false,
+        }
+    }
+
     pub fn getTemplate(self: *const Element) ElementError![]u8 {
         switch (self.*) {
             .plane => |*elem| return if (elem.template) |e| e else ElementError.TemplateNotSetting,

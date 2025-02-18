@@ -5,9 +5,11 @@ const node = z.node;
 
 pub fn index() node.Node {
     const main = node.createNode(.main);
+    const title = node.createNode(.title);
 
     return main.init(.{
-        Head("zframe - secure Web Frontend Framework for Zig", .{}),
+        // Head("zframe - secure Web Frontend Framework for Zig", .{}),
+        title.init("zframe - secure Web Frontend Framework for Zig"),
         Hero(),
         Feature(),
         RoadMap(),
