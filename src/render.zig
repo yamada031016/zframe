@@ -159,7 +159,7 @@ pub fn render(page_name: []const u8, args: Node) !void {
     head_len = try head_file.getEndPos();
     const offset = try html.pwrite("<!DOCTYPE html>", 0);
     _ = try std.fs.File.copyRangeAll(head_file, 0, html, offset, head_len);
-    try std.fs.cwd().deleteFile(".zig-cache/head.html");
+    // try std.fs.cwd().deleteFile(".zig-cache/head.html");
 }
 
 fn parse(node: *const Node, writer: anytype) !void {

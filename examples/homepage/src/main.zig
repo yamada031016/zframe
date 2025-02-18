@@ -4,7 +4,8 @@ const c = @import("components");
 
 pub fn main() !void {
     try zframe.render.config(c.layout.Layout, c.head.Head);
-    try zframe.render.render("src/pages/index.zig", @import("pages/index.zig").index());
-    try zframe.render.render("src/pages/about.zig", @import("pages/about.zig").about());
+
+    try zframe.render.render("index.zig", @import("pages/index.zig").index());
+    try zframe.render.render("about.zig", @import("pages/about.zig").about());
     // try zframe.render.mdToHtml("src/pages/Docs.md");
 }
