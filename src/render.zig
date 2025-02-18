@@ -141,6 +141,8 @@ pub fn render(page_name: []const u8, args: Node) !void {
         _ = try std.fs.File.copyRangeAll(tmp, 0, html, offset, tmp_len);
         return;
     };
+    const head_writer = head_file.writer();
+    try head_writer.writeAll("</head>");
 
     const len = try html.getEndPos();
     var head_len = try head_file.getEndPos();
@@ -148,7 +150,7 @@ pub fn render(page_name: []const u8, args: Node) !void {
     head_len = try head_file.getEndPos();
     const offset = try html.pwrite("<!DOCTYPE html>", 0);
     _ = try std.fs.File.copyRangeAll(head_file, 0, html, offset, head_len);
-    // try std.fs.cwd().deleteFile(".zig-cache/head.html");
+    try std.fs.cwd().deleteFile(".zig-cache/head.html");
 }
 
 fn parse(node: *const Node, writer: anytype) !void {
@@ -197,15 +199,17 @@ fn parse(node: *const Node, writer: anytype) !void {
                     try parse(&child, writer);
                 }
             } else if (elem.isInsideHead()) {
-                var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .read = true });
+                var head_output = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .read = true, .truncate = false });
                 defer head_output.close();
                 var head_writer = head_output.writer();
-                try head_writer.print("<{s}>", .{tagName});
-                // try head_writer.writeAll("\n<head>");
-                for (node.children.items) |child| {
-                    try parse(&child, head_writer);
+                if (mem.eql(u8, "head", tagName)) {
+                    try head_writer.writeAll("\n<head>");
+                    for (node.children.items) |child| {
+                        try parse(&child, head_writer);
+                    }
+                } else {
+                    try parseElement(node, head_writer);
                 }
-                // try head_writer.writeAll("</head>");
             } else {
                 try parseElement(node, writer);
                 for (node.children.items) |child| {
