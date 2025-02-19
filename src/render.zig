@@ -112,7 +112,7 @@ pub fn render(page_name: []const u8, args: Node) !void {
     var root = n.createNode(.div).setId("root").init(.{args});
     var writer = html.writer();
 
-    try writer.writeAll("\n<body>");
+    // try writer.writeAll("\n<body>");
     if (layout) |l| {
         const layoutContents = readAll: {
             var buf: [1024 * 5]u8 = undefined;
@@ -130,7 +130,7 @@ pub fn render(page_name: []const u8, args: Node) !void {
     } else {
         try parse(&root, writer);
     }
-    try writer.print("</body></html>", .{});
+    // try writer.print("</body></html>", .{});
 
     const head_file = std.fs.cwd().openFile(".zig-cache/head.html", .{ .mode = .read_write }) catch {
         const tmp = try std.fs.cwd().createFile(".zig-cache/head.html", .{ .read = true });
@@ -207,7 +207,8 @@ fn parse(node: *const Node, writer: anytype) !void {
                         try parse(&child, head_writer);
                     }
                 } else {
-                    try parseElement(node, head_writer);
+                    const content = try std.fmt.allocPrint(std.heap.page_allocator, "<{s}>{s}</{s}>", .{ tagName, elem.getTemplate(), tagName });
+                    try head_output.pwriteAll(content, try head_output.getEndPos());
                 }
             } else {
                 try parseElement(node, writer);
