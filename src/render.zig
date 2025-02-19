@@ -207,7 +207,7 @@ fn parse(node: *const Node, writer: anytype) !void {
                         try parse(&child, head_writer);
                     }
                 } else {
-                    const content = try std.fmt.allocPrint(std.heap.page_allocator, "<{s}>{s}</{s}>", .{ tagName, try elem.getTemplate(), tagName });
+                    const content = try std.fmt.allocPrint(std.heap.page_allocator, "<{s}>{s}</{s}>", .{ tagName, elem.getTemplate() catch "", tagName });
                     try head_output.pwriteAll(content, try head_output.getEndPos());
                 }
             } else {
