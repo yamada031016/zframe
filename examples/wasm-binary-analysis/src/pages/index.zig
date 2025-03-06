@@ -4,34 +4,41 @@ const w = @import("api");
 const Head = c.head.Head;
 const node = z.node;
 
+const h1 = node.createNode(.h1);
+const Loader = z.handler.Loader;
+const WebAssembly = z.handler.WebAssembly;
+const EventListener = z.handler.EventListener;
+const JsHandler = z.handler.JsHandler;
+
 pub fn index() node.Node {
-    const h1 = node.createNode(.h1);
-    const handler = z.handler.JsHandler{
+    const handler = JsHandler{
         .then = .{
             .filename = "convert.js",
             .func = "wasm",
         },
     };
-    const loader = z.handler.Loader{ .webassembly = z.handler.WebAssembly.init("hash.wasm", handler) };
-    const clickHandler = z.handler.EventListener{
+    const loader = Loader{
+        .webassembly = WebAssembly.init(
+            "hash.wasm",
+            handler,
+        ),
+    };
+    const clickHandler = EventListener{
         .target = .change,
         .content = loader,
-        .options = null,
     };
 
     return node.createNode(.div).init(.{
-        c.head.Head("Wasm Binary Analyzer", .{}),
-        node.createNode(.div).setClass("bg-gray-900 text-white font-sans").init(.{
-            node.createNode(.div).setClass("min-h-screen flex flex-col items-center py-8").init(.{
-                h1.init("Analyze WebAssembly!").setClass("text-3xl font-bold text-purple-400 mb-6"),
-                node.createNode(.div).setClass("w-full max-w-4xl px-4").init(.{
+        node.createNode(.div).init(.{
+            node.createNode(.div).init(.{
+                h1.init("Analyze WebAssembly!"),
+                node.createNode(.div).init(.{
                     node.createNode(.form).init(.{
-                        // <label for="wasmFileInput" class="block text-lg font-medium text-purple-400 mb-2">Upload Wasm File</label>
                         node.createNode(.input)
-                            .init(.{ .type = .file, .accept = ".wasm" })
-                            .setId("input")
-                            .setClass("block w-full text-gray-300 bg-gray-800 border border-gray-600 rounded-md px-3 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all")
-                            .addEventListener(clickHandler),
+                            .init(.{
+                            .type = .file,
+                            .accept = ".wasm",
+                        }).addEventListener(clickHandler),
                     }),
                 }),
                 wasmAnalysisTable(&.{}),

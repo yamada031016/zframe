@@ -72,13 +72,12 @@ fn serve(stdout: std.fs.File.Writer) !void {
             else => std.log.err("xdg-open is not installed\n", .{}),
         }
     };
-
-    var Monitor = try FileMonitor.init(observe_dir);
-    defer Monitor.deinit();
-
     const thread = try std.Thread.spawn(.{}, HTTPServer.serve, .{server});
     _ = thread;
     _ = try std.Thread.spawn(.{}, WebSocketManager.connect, .{@constCast(&manager)});
+
+    var Monitor = try FileMonitor.init(observe_dir);
+    defer Monitor.deinit();
     while (true) {
         if (try Monitor.detectChanges()) {
             const status = execute_command("zig build run") catch |e| std.debug.panic("build error: {any}", .{e});
