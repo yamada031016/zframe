@@ -24,7 +24,7 @@ jobs:
       - name: Build homepage
         run: |
           cd examples/homepage
-          zig fetch --save=zframe https://github.com/yamada031016/zframe/archive/refs/heads/master.tar.gz
+          # zig fetch --save=zframe https://github.com/yamada031016/zframe/archive/refs/heads/master.tar.gz
           zig build run
 
       - name: Deploy to GitHub Pages
