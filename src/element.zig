@@ -417,6 +417,7 @@ pub const TableCol = struct {
     span: ?u8 = null,
 };
 
+// <th>
 pub const TableHead = struct {
     template: ?[]u8 = null,
     abbr: ?[]u8 = null,
@@ -426,6 +427,7 @@ pub const TableHead = struct {
     scope: ?enum { row, col, rowgroup, colgroup } = null,
 };
 
+// <td>
 pub const TableData = struct {
     colspan: ?u8 = null,
     headers: ?[]u8 = null,
