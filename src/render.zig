@@ -373,10 +373,9 @@ fn renderLayout(layout: fn (Node) Node) !void {
 // }
 
 pub fn config(layout: fn (Node) Node) !void {
-    _ = layout;
     // const cwd = std.fs.cwd();
-    // try renderLayout(layout);
-    //
+    try renderLayout(layout);
+
     // const _layout: ?std.fs.File = l: {
     //     std.fs.cwd().access(".zig-cache/layout.html", .{}) catch break :l null;
     //     break :l try std.fs.cwd().openFile(".zig-cache/layout.html", .{});
@@ -401,7 +400,7 @@ pub fn config(layout: fn (Node) Node) !void {
     //     switch (file.kind) {
     //         .file => {
     //             if (std.mem.eql(u8, ".md", std.fs.path.extension(file.path))) {
-    //                 try renderMarkdown(file.path, layoutContents);
+    //                 // try renderMarkdown(file.path, layoutContents);
     //             }
     //         },
     //         else => {},
