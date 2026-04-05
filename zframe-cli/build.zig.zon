@@ -1,39 +1,17 @@
 .{
-    // This is the default name used by packages depending on this one. For
-    // example, when a user runs `zig fetch --save <url>`, this field is used
-    // as the key in the `dependencies` table. Although the user can choose a
-    // different name, most users will stick with this provided value.
-    //
-    // It is redundant to include "zig" in this name because it is already
-    // within the Zig package namespace.
-    .name = "zframe-dev-utils",
-
-    // This is a [Semantic Version](https://semver.org/).
-    // In a future version of Zig it will be used for package deduplication.
+    .name = .zframe_cli,
     .version = "0.0.0",
-
-    // This field is optional.
-    // This is currently advisory only; Zig does not yet do anything
-    // with this value.
-    //.minimum_zig_version = "0.11.0",
-
-    // This field is optional.
-    // Each dependency must either provide a `url` and `hash`, or a `path`.
-    // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
-    // Once all dependencies are fetched, `zig build` no longer requires
-    // internet connectivity.
+    .fingerprint = 0x2f4d27d6b05461fd, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.16.0-dev.2255+d417441f4",
     .dependencies = .{
         .zerver = .{
             .url = "https://github.com/yamada031016/zerver/archive/refs/heads/main.tar.gz",
-            .hash = "122012a698634d20fe09535b1abb467bc39ec74d57cb1682f4e8229306861c6567da",
+            .hash = "zerver-0.1.0-Fc4S3E-ECQAfrTNhTlZZcuBVE4Dg2fPLCFPvfZsIsrGu",
         },
     },
     .paths = .{
         "build.zig",
         "build.zig.zon",
         "src",
-        // For example...
-        //"LICENSE",
-        //"README.md",
     },
 }
