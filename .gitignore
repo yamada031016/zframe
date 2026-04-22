@@ -2,3 +2,5 @@ zig-out
 zig-out/
 .zig-cache
 .zig-cache/
+zframe-cli/zig-pkg
+zframe-cli/zig-pkg/
