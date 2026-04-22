@@ -6,7 +6,7 @@
     .dependencies = .{
         .zerver = .{
             .url = "https://github.com/yamada031016/zerver/archive/refs/heads/main.tar.gz",
-            .hash = "zerver-0.1.0-Fc4S3E-ECQAfrTNhTlZZcuBVE4Dg2fPLCFPvfZsIsrGu",
+            .hash = "zerver-0.1.0-Fc4S3GCuCQBnAGgFvvid_C1s6Lb6Qdy8EEn_KBkocMWQ",
         },
     },
     .paths = .{
