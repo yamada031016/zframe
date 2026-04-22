@@ -1,33 +1,39 @@
 const std = @import("std");
 const log = std.log;
 
+const Allocator = std.mem.Allocator;
+
 pub const Browser = struct {
-    var arena_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     var browser_id: []const u8 = undefined;
     const domain = "http://localhost";
 
     allocator: std.mem.Allocator,
+    io: std.Io,
     browser: []const u8 = "xdg-open",
     url: []const u8,
     app: WebBrowser,
 
-    pub fn init(app: WebBrowser, port: u16) !Browser {
-        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        const allocator = gpa.allocator();
-        const url = try std.fmt.allocPrintZ(allocator, "{s}:{}", .{ domain, port });
-        return Browser{ .allocator = arena_allocator.allocator(), .browser = "xdg-open", .app = app, .url = url };
+    pub fn init(app: WebBrowser, allocator: Allocator, io: std.Io, port: u16) !Browser {
+        const url = try std.fmt.allocPrint(allocator, "{s}:{}", .{ domain, port });
+        return Browser{
+            .allocator = allocator,
+            .io = io,
+            .browser = "xdg-open",
+            .app = app,
+            .url = url,
+        };
     }
 
     pub fn deinit(self: *Browser) void {
         _ = &self;
-        arena_allocator.deinit();
+        self.allocator.deinit();
     }
 
     pub fn openHtml(self: *Browser) !void {
         switch (@import("builtin").os.tag) {
             .linux => {
                 const cmd = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {s}", .{ self.browser, self.url });
-                _ = try @import("main.zig").execute_command(cmd);
+                _ = try std.process.run(self.allocator, self.io, .{ .argv = &[_][]const u8{ "sh", "-c", cmd } });
             },
             else => {},
         }

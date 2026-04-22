@@ -49,15 +49,18 @@ const Command = union(CommandEnum) {
 
 fn dispatch(io: std.Io, cmd: Command, allocator: Allocator, writer: *std.Io.Writer, cmd_path: []const u8) !void {
     switch (cmd) {
-        .help => printUsage(),
+        .help => try printUsage(io),
         .init => |name| try initProject(io, allocator, name, cmd_path),
         .build => |serve_flag| try buildCommand(io, allocator, writer, serve_flag),
-        .update => try updateDependencies(),
+        .update => try updateDependencies(io, allocator, cmd_path),
     }
 }
 
-fn printUsage() []const u8 {
-    return (
+fn printUsage(io: std.Io) !void {
+    var stdout_buffer: [1024]u8 = undefined;
+    var stdout_writer = std.Io.File.stdout().writer(io, &stdout_buffer);
+    const stdout = &stdout_writer.interface;
+    try stdout.print(
         \\Usage: zframe [command] [option]
         \\
         \\Commands:
@@ -71,7 +74,8 @@ fn printUsage() []const u8 {
         \\General Options:
         \\
         \\  -h, --help  Show this help messages.
-    );
+    , .{});
+    try stdout.flush();
 }
 
 fn buildCommand(io: std.Io, allocator: Allocator, writer: *std.Io.Writer, serve_flag: bool) !void {
@@ -99,17 +103,17 @@ fn serve(io: std.Io, allocator: Allocator, writer: *std.Io.Writer) !void {
     );
     defer server.deinit();
 
-    var manager = try WebSocketManager.init(5555);
+    var manager = try WebSocketManager.init(io, allocator, 5555);
 
-    try injectLiveReload(manager);
+    try injectLiveReload(io, allocator, manager);
 
-    var browser = try Browser.init(.chrome, server.listener.socket.address.getPort());
+    var browser = try Browser.init(.chrome, allocator, io, server.listener.socket.address.getPort());
     browser.openHtml() catch std.log.err("xdg-open is not installed\n", .{});
 
-    _ = try std.Thread.spawn(.{}, HTTPServer.serve, .{server});
-    _ = try std.Thread.spawn(.{}, WebSocketManager.connect, .{@constCast(&manager)});
+    _ = try std.Thread.spawn(.{}, HTTPServer.serve, .{&server});
+    _ = try std.Thread.spawn(.{}, WebSocketManager.connect, .{&manager});
 
-    var Monitor = try FileMonitor.init(observe_dir);
+    var Monitor = try FileMonitor.init(allocator, io, observe_dir);
     defer Monitor.deinit();
 
     while (true) {
@@ -119,7 +123,7 @@ fn serve(io: std.Io, allocator: Allocator, writer: *std.Io.Writer) !void {
 
             // if (status == 0) {
             if (result.term == .exited) {
-                try injectLiveReload(manager);
+                try injectLiveReload(io, allocator, manager);
                 try writer.print("\x1B[1;92mBUILD SUCCESS.\x1B[m\n", .{});
                 try writer.flush();
                 try manager.sendData("Reload!");
@@ -128,25 +132,27 @@ fn serve(io: std.Io, allocator: Allocator, writer: *std.Io.Writer) !void {
     }
 }
 
-fn injectLiveReload(io: std.Io, manager: WebSocketManager) !void {
+fn injectLiveReload(io: std.Io, allocator: Allocator, manager: WebSocketManager) !void {
     const dir = try std.Io.Dir.cwd().openDir(io, "zig-out/html", .{ .iterate = true });
     var walker = try dir.walk(std.heap.page_allocator);
 
-    while (try walker.next()) |file| {
+    while (try walker.next(io)) |file| {
         if (file.kind != .file) continue;
         if (!std.mem.eql(u8, ".html", std.fs.path.extension(file.path))) continue;
 
         const path = try std.fmt.allocPrint(std.heap.page_allocator, "zig-out/html/{s}", .{file.path});
 
         var output = try std.Io.Dir.cwd().openFile(io, path, .{ .mode = .read_write });
+        defer output.close(io);
 
         const script = try std.fmt.allocPrint(
-            std.heap.page_allocator,
+            allocator,
             // "<script type='text/javascript'>var con=new WebSocket(\"ws://localhost:{d}\");con.onopen=function(e){{console.log(e);con.onmessage=function(e){{console.log(e);window.location.reload()}}}}</script>",
             "<script> var con = new WebSocket('ws://localhost:{d}');con.onopen = function(event) {{console.log(event); con.onmessage = function(event) {{ window.location.reload(); }} }} </script> ",
             .{manager.listener.socket.address.getPort()},
         );
-        try output.pwriteAll(script, try output.getEndPos());
+        var writer = output.writer(io, script).interface;
+        try writer.writeAll(script);
     }
 }
 
@@ -265,25 +271,28 @@ test "createProjectDirs creates expected dirs" {
     try tmp.dir.openDir(io, "public", .{});
 }
 
-test "locateTemplateDir fails when not found" {
-    const allocator = std.testing.allocator;
+// No way to get cmd_path when testing.
+// test "locateTemplateDir fails when not found" {
+//     const allocator = std.testing.allocator;
+//
+//     const result = locateTemplateDir(std.testing.io, allocator);
+//     try std.testing.expectError(error.TemplateNotFound, result);
+// }
 
-    const result = locateTemplateDir(std.testing.io, allocator);
-    try std.testing.expectError(error.TemplateNotFound, result);
-}
-fn updateDependencies(allocator: Allocator) !void {
-    try fetchDependencies(allocator);
+fn updateDependencies(io: std.Io, allocator: Allocator, cmd_path: []const u8) !void {
+    try fetchDependencies(io, allocator);
 
-    const template_dir = try locateTemplateDir(allocator);
+    const template_dir = try locateTemplateDir(io, allocator, cmd_path);
 
     const contents = try loadTemplateFile(
+        io,
         allocator,
         template_dir,
         "build.zig",
     );
     defer allocator.free(contents);
 
-    try safeReplaceFile("build.zig", contents);
+    try safeReplaceFile(io, "build.zig", contents);
 }
 
 fn fetchDependencies(io: std.Io, allocator: Allocator) !void {
@@ -299,12 +308,13 @@ fn fetchDependencies(io: std.Io, allocator: Allocator) !void {
 }
 
 fn loadTemplateFile(
+    io: std.Io,
     allocator: Allocator,
     dir: std.Io.Dir,
     path: []const u8,
 ) ![]u8 {
     const max_bytes = 10 * 1024 * 1024;
-    return try dir.readFileAlloc(allocator, path, max_bytes);
+    return try dir.readFileAlloc(io, path, allocator, std.Io.Limit.limited(max_bytes));
 }
 
 fn safeReplaceFile(io: std.Io, filename: []const u8, new_data: []const u8) !void {
@@ -314,13 +324,13 @@ fn safeReplaceFile(io: std.Io, filename: []const u8, new_data: []const u8) !void
     defer backup_dir.close(io);
 
     // 1. buckup
-    try std.Io.Dir.copyFile(cwd, filename, backup_dir, "old_build.zig", .{});
+    try std.Io.Dir.copyFile(cwd, filename, backup_dir, "old_build.zig", io, .{});
 
     // 2. delete original
-    try cwd.deleteFile(filename);
+    try cwd.deleteFile(io, filename);
 
     // 3. write new
-    cwd.writeFile(.{
+    cwd.writeFile(io, .{
         .sub_path = filename,
         .data = new_data,
         .flags = .{ .exclusive = true, .truncate = true },
@@ -328,7 +338,7 @@ fn safeReplaceFile(io: std.Io, filename: []const u8, new_data: []const u8) !void
         std.log.err("failed to update {s}: {s}\n", .{ filename, @errorName(err) });
 
         // roleback
-        try std.Io.Dir.copyFile(backup_dir, "old_build.zig", cwd, filename, .{});
+        try std.Io.Dir.copyFile(backup_dir, "old_build.zig", cwd, filename, io, .{});
 
         return err;
     };
@@ -340,7 +350,7 @@ test "loadTemplateFile fails on missing file" {
 
     try std.testing.expectError(
         error.FileNotFound,
-        loadTemplateFile(std.testing.allocator, tmp.dir, "nope.zig"),
+        loadTemplateFile(std.testing.io, std.testing.allocator, tmp.dir, "nope.zig"),
     );
 }
 
@@ -557,20 +567,17 @@ pub fn main(init: std.process.Init) !void {
         switch (err) {
             error.NoCommand => {
                 std.log.err("expected command", .{});
-                try writer.writeAll(printUsage());
-                try writer.flush();
+                printUsage(init.io) catch unreachable;
                 return;
             },
             error.InvalidCommand => {
                 std.log.err("invalid command", .{});
-                try writer.writeAll(printUsage());
-                try writer.flush();
+                printUsage(init.io) catch unreachable;
                 return;
             },
             error.MissingArgument => {
                 std.log.err("missing argument", .{});
-                try writer.writeAll(printUsage());
-                try writer.flush();
+                printUsage(init.io) catch unreachable;
                 return;
             },
         }
