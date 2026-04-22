@@ -441,7 +441,8 @@ const TtyController = struct {
     }
 
     pub fn eventLoop(self: *TtyController, io: std.Io) !void {
-        var reader_wrapper = self.tty.reader(io, &.{});
+        var buffer: [4096]u8 = undefined;
+        var reader_wrapper = self.tty.reader(io, &buffer);
         const reader = &reader_wrapper.interface;
 
         while (reader.takeByte()) |byte| {
